@@ -1,0 +1,17 @@
+HOW TO CREATE A NEW MIGRATION (after changing an entity or configuration)
+
+cd src\FarmApp.Api
+dotnet ef migrations add AddCropAndBlock --project ..\FarmApp.Infrastructure
+dotnet ef database update --project ..\FarmApp.Infrastructure
+
+(replace "AddCropAndBlock" with a name describing what changed)
+
+
+HOW TO REVERT A MIGRATION
+
+cd src\FarmApp.Api
+dotnet ef migrations list --project ..\FarmApp.Infrastructure
+dotnet ef database update PriorMigrationName --project ..\FarmApp.Infrastructure
+dotnet ef migrations remove --project ..\FarmApp.Infrastructure
+
+(roll the database back to the prior migration BEFORE removing the file)
