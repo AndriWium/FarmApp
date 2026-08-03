@@ -1,15 +1,19 @@
+using FarmApp.Domain.Repositories;
 using FarmApp.Infrastructure.Persistence;
+using FarmApp.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddDbContext<FarmAppDbContext>(o =>
     o.UseSqlServer(builder.Configuration.GetConnectionString("FarmApp")));
 
+builder.Services.AddScoped<IGradeRepository, GradeRepository>();
+builder.Services.AddScoped<IBlockRepository, BlockRepository>();
+builder.Services.AddScoped<ICropRepository, CropRepository>();
+builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
+
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
