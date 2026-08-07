@@ -1,6 +1,10 @@
+using FarmApp.Api.Features.Blocks;
+using FarmApp.Api.Features.Crops;
+using FarmApp.Api.Features.Grades;
 using FarmApp.Domain.Repositories;
 using FarmApp.Infrastructure.Persistence;
 using FarmApp.Infrastructure.Persistence.Repositories;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +16,10 @@ builder.Services.AddScoped<IGradeRepository, GradeRepository>();
 builder.Services.AddScoped<IBlockRepository, BlockRepository>();
 builder.Services.AddScoped<ICropRepository, CropRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
+
+builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
+builder.Services.AddScoped<IValidator<CreateBlockRequest>, CreateBlockRequestValidator>();
+builder.Services.AddScoped<IValidator<CreateCropRequest>, CreateCropRequestValidator>();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();

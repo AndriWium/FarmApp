@@ -4,8 +4,8 @@ namespace FarmApp.Domain.Repositories;
 
 public interface ICropRepository
 {
-    Task<Crop?> GetById(int id, CancellationToken ct);
-    Task<List<Crop>> GetAll(CancellationToken ct);
-    Task Add(Crop crop, CancellationToken ct);
+    Task<Crop?> GetByIdAsync(int id, CancellationToken ct);
+    Task<List<Crop>> GetAllAsync(CancellationToken ct);
+    Task AddAsync(Crop crop, CancellationToken ct);
     void Remove(Crop crop);
 }

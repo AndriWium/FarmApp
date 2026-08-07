@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FarmApp.Infrastructure.Persistence;
 
-public class FarmAppDbContext(DbContextOptions<FarmAppDbContext> options) : DbContext(options), IUnitOfWork
+public class FarmAppDbContext(DbContextOptions<FarmAppDbContext> options) : DbContext(options), IUnitOfWork //understand what IUnitOfWork does for us here
 {
     public DbSet<Grade> Grades => Set<Grade>();
     public DbSet<Block> Blocks => Set<Block>();

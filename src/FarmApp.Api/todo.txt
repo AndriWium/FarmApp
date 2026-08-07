@@ -1,0 +1,24 @@
+finish up the guide
+understand what Iunitofwork does for us in the dbcontext file
+learn the theory behind the work i did
+
+if the guide does not do this then:
+take logic out of controller
+abstract validators if possible
+do selects when fetching data
+check for .asnotracking
+	return await db.table
+	.include()
+	.asnotracking
+	.where
+	.orderby
+	.skip
+	.take
+	.select   (projection)
+	.tolistasync
+add logging + efficient way to process logs
+authentication on controllers
+-jwt 
+double check popi standards
+-logs
+-from header vs from body in controllers

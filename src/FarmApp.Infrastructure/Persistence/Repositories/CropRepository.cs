@@ -6,17 +6,17 @@ namespace FarmApp.Infrastructure.Persistence.Repositories;
 
 public class CropRepository(FarmAppDbContext db) : ICropRepository
 {
-    public Task<Crop?> GetById(int id, CancellationToken ct)
+    public Task<Crop?> GetByIdAsync(int id, CancellationToken ct)
     {
         return db.Crops.FirstOrDefaultAsync(x => x.CropId == id, ct);
     }
 
-    public Task<List<Crop>> GetAll(CancellationToken ct)
+    public Task<List<Crop>> GetAllAsync(CancellationToken ct)
     {
         return db.Crops.AsNoTracking().ToListAsync(ct);
     } 
 
-    public async Task Add(Crop crop, CancellationToken ct)
+    public async Task AddAsync(Crop crop, CancellationToken ct)
     { 
         await db.Crops.AddAsync(crop, ct);
     }

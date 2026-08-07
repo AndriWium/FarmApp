@@ -4,8 +4,8 @@ namespace FarmApp.Domain.Repositories;
 
 public interface IGradeRepository
 {
-    Task<Grade?> GetById(int id, CancellationToken ct);
-    Task<List<Grade>> GetAll(CancellationToken ct);
-    Task Add(Grade grade, CancellationToken ct);
+    Task<Grade?> GetByIdAsync(int id, CancellationToken ct);
+    Task<List<Grade>> GetAllAsync(CancellationToken ct);
+    Task AddAsync(Grade grade, CancellationToken ct);
     void Remove(Grade grade);
 }

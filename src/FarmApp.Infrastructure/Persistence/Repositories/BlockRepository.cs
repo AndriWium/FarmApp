@@ -6,17 +6,17 @@ namespace FarmApp.Infrastructure.Persistence.Repositories;
 
 public class BlockRepository(FarmAppDbContext db) : IBlockRepository
 {
-    public Task<Block?> GetById(int id, CancellationToken ct)
+    public Task<Block?> GetByIdAsync(int id, CancellationToken ct)
     {
         return db.Blocks.FirstOrDefaultAsync(x => x.BlockId == id, ct);
     }
 
-    public Task<List<Block>> GetAll(CancellationToken ct)
+    public Task<List<Block>> GetAllAsync(CancellationToken ct)
     {
         return db.Blocks.AsNoTracking().ToListAsync(ct);
     } 
 
-    public async Task Add(Block block, CancellationToken ct)
+    public async Task AddAsync(Block block, CancellationToken ct)
     { 
         await db.Blocks.AddAsync(block, ct);
     }
