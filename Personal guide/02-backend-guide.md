@@ -230,6 +230,7 @@ Open the generated file under `Migrations\` and *read it* — see your `HasMaxLe
 **VS:** right-click **FarmApp.Domain** → Add → New Folder → `Repositories`. Right-click `Repositories` → Add → Class → `IGradeRepository.cs`.
 
 ```csharp
+using System.Linq.Expressions;
 using FarmApp.Domain.Entities;
 
 namespace FarmApp.Domain.Repositories;
@@ -237,10 +238,16 @@ namespace FarmApp.Domain.Repositories;
 public interface IGradeRepository
 {
     Task<Grade?> GetByIdAsync(int id, CancellationToken ct);
-    Task<List<Grade>> GetAllAsync(CancellationToken ct);
+    Task<TResult?> GetByIdAsync<TResult>(int id, Expression<Func<Grade, TResult>> selector, CancellationToken ct);
+    Task<List<TResult>> GetAllAsync<TResult>(Expression<Func<Grade, TResult>> selector, CancellationToken ct);
     Task AddAsync(Grade grade, CancellationToken ct);
     void Remove(Grade grade);
 }
+```
+
+Right-click `Repositories` again → Add → Class → `IUnitOfWork.cs` (its own file this time — every future repository shares this one, so it doesn't belong bundled with Grade's):
+```csharp
+namespace FarmApp.Domain.Repositories;
 
 public interface IUnitOfWork
 {
@@ -248,13 +255,14 @@ public interface IUnitOfWork
 }
 ```
 
-(Two small interfaces sharing one file is a deliberate exception to "one type per file" — `IUnitOfWork` is tiny and every future repository will use it. Split it out into its own file later if it bothers you.)
+*Why two overloads of `GetByIdAsync`?* One returns the raw `Grade` entity — you need that version when you're about to **mutate and save** it (Update/Delete, step 5). The generic one lets the *caller* say exactly which columns it wants back, via a `selector` expression — that's what "do a `.Select()` when fetching data" actually means in EF, and it's what 4.2 implements.
 
-### 4.2 — The implementation (in Infrastructure)
+### 4.2 — The implementation (in Infrastructure): projected, `.AsNoTracking()` reads
 
 **VS:** right-click `Persistence` (inside **FarmApp.Infrastructure**) → Add → New Folder → `Repositories`. Right-click that `Repositories` folder → Add → Class → `GradeRepository.cs`.
 
 ```csharp
+using System.Linq.Expressions;
 using FarmApp.Domain.Entities;
 using FarmApp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -266,8 +274,17 @@ public class GradeRepository(FarmAppDbContext db) : IGradeRepository
     public Task<Grade?> GetByIdAsync(int id, CancellationToken ct)
         => db.Grades.FirstOrDefaultAsync(x => x.GradeId == id, ct);
 
-    public Task<List<Grade>> GetAllAsync(CancellationToken ct)
-        => db.Grades.AsNoTracking().ToListAsync(ct);
+    public Task<TResult?> GetByIdAsync<TResult>(int id, Expression<Func<Grade, TResult>> selector, CancellationToken ct)
+        => db.Grades.AsNoTracking()
+            .Where(x => x.GradeId == id)
+            .Select(selector)
+            .FirstOrDefaultAsync(ct);
+
+    public Task<List<TResult>> GetAllAsync<TResult>(Expression<Func<Grade, TResult>> selector, CancellationToken ct)
+        => db.Grades.AsNoTracking()
+            .OrderBy(x => x.Name)
+            .Select(selector)
+            .ToListAsync(ct);
 
     public async Task AddAsync(Grade grade, CancellationToken ct)
         => await db.Grades.AddAsync(grade, ct);
@@ -277,7 +294,9 @@ public class GradeRepository(FarmAppDbContext db) : IGradeRepository
 }
 ```
 
-`AsNoTracking()` on the read-all query is the [doc 11](<../AI Guide/11-coding-standards.md>) rule — reads don't need EF's change-tracking overhead.
+Two things to notice, both direct answers to "check for `.AsNoTracking()`" and "do selects when fetching data":
+- Every read path (`GetByIdAsync<TResult>`, `GetAllAsync<TResult>`) is `.AsNoTracking()` — reads don't need EF's change-tracking overhead ([doc 11](<../AI Guide/11-coding-standards.md>) rule). The one method that's deliberately **not** tracking-free is the plain `GetByIdAsync(int id, ct)`, because Update/Delete need a tracked entity to save changes back.
+- `.Select(selector)` runs the projection **in the SQL query itself** — SQL Server only returns the columns the caller actually asked for, not every column on the table. Right now `Grade` only has two columns so the win is invisible; the moment an entity has ten columns and a DTO needs three, this is the difference between a wide `SELECT *`-shaped query and a narrow one.
 
 ### 4.3 — Make the DbContext double as the Unit of Work
 
@@ -327,6 +346,99 @@ builder.Services.AddControllers();
 
 ✅ **Checkpoint:** `dotnet build` succeeds; you can explain aloud why Domain compiles without an EF package reference anywhere in `FarmApp.Domain.csproj`.
 
+### 4.5 — Querying with filtering, sorting & paging (the pattern for when a list gets big)
+
+*Concept:* `Grade`/`Block`/`Crop` will only ever hold a handful of rows — no filtering or paging needed, ever. But `Sale`, `StockMovement`, and reports (Phase 1+, [doc 06](<../AI Guide/06-roadmap.md>)) will hold thousands. **Learn this pattern now, on paper, so it's ready when a real list needs it** — don't bolt it onto Grade just to use it.
+
+The full EF query chain, in the order EF actually wants it:
+```csharp
+return await db.StockMovements
+    .Include(m => m.StockBatch)                 // join in a related entity's data
+    .AsNoTracking()                              // read-only — no change tracking
+    .Where(m => m.Date >= from && m.Date <= to)  // filter, translated to SQL WHERE
+    .OrderByDescending(m => m.Date)              // sort, translated to SQL ORDER BY
+    .Skip((page - 1) * pageSize)                 // page offset
+    .Take(pageSize)                              // page size
+    .Select(m => new StockMovementDto(...))      // projection — only the columns you need
+    .ToListAsync(ct);
+```
+Every one of these is optional and composes with the rest — a repository method just builds this chain up from whichever pieces the caller needs. `.Include()` eagerly loads a related entity (a JOIN) — pointless today since Grade/Block/Crop have no relationships yet, essential once `StockBatch` needs its `Product`, or `Sale` needs its `SaleLine`s. Order matters for readability, not correctness, except: `.Select()` should come **after** `.Where()`/`.OrderBy()`/`.Skip()`/`.Take()` so those still run against the full entity (EF can't filter/sort by a column you've already projected away).
+
+When a real paged list shows up (Phase 1's Stock screen is the first candidate), add a method shaped like this to that entity's repository interface and implementation — same idea as `GetAllAsync<TResult>` above, with `Where`/`OrderBy`/`Skip`/`Take` layered in.
+
+### 4.6 — Service layer: take logic out of the controller
+
+*Concept:* a controller's only job is translating HTTP ↔ a method call. Right now `GetAll`/`Create`/etc. build entities, map to DTOs, and orchestrate the repository + `IUnitOfWork` directly inside the controller — that's business logic living in the wrong place. A **service** sits between controller and repository and owns that orchestration; the controller shrinks to "call the service, translate the result to an HTTP status."
+
+**VS:** in the `Grades` folder (you'll create this folder for real in step 5.1 — if you're reading ahead, make it now: right-click **FarmApp.Api** → Add → New Folder → `Features` → New Folder → `Grades`), Add → Class → `IGradeService.cs`:
+```csharp
+namespace FarmApp.Api.Features.Grades;
+
+public interface IGradeService
+{
+    Task<List<GradeDto>> GetAllAsync(CancellationToken ct);
+    Task<GradeDto?> GetByIdAsync(int id, CancellationToken ct);
+    Task<GradeDto> CreateAsync(CreateGradeRequest request, CancellationToken ct);
+    Task<bool> UpdateAsync(int id, CreateGradeRequest request, CancellationToken ct);
+    Task<bool> DeleteAsync(int id, CancellationToken ct);
+}
+```
+(This references `GradeDto`/`CreateGradeRequest`, which you create in step 5.1 — build this file right after those two, in whichever order feels natural.)
+
+Add → Class → `GradeService.cs`:
+```csharp
+using FarmApp.Domain.Entities;
+using FarmApp.Domain.Repositories;
+
+namespace FarmApp.Api.Features.Grades;
+
+public class GradeService(IGradeRepository repo, IUnitOfWork uow) : IGradeService
+{
+    public Task<List<GradeDto>> GetAllAsync(CancellationToken ct)
+        => repo.GetAllAsync(g => new GradeDto(g.GradeId, g.Name), ct);
+
+    public Task<GradeDto?> GetByIdAsync(int id, CancellationToken ct)
+        => repo.GetByIdAsync(id, g => new GradeDto(g.GradeId, g.Name), ct);
+
+    public async Task<GradeDto> CreateAsync(CreateGradeRequest request, CancellationToken ct)
+    {
+        var grade = new Grade { Name = request.Name };
+        await repo.AddAsync(grade, ct);
+        await uow.SaveChangesAsync(ct);
+        return new GradeDto(grade.GradeId, grade.Name);
+    }
+
+    public async Task<bool> UpdateAsync(int id, CreateGradeRequest request, CancellationToken ct)
+    {
+        var grade = await repo.GetByIdAsync(id, ct);   // tracked entity — required to mutate + save
+        if (grade is null) return false;
+
+        grade.Name = request.Name;
+        await uow.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<bool> DeleteAsync(int id, CancellationToken ct)
+    {
+        var grade = await repo.GetByIdAsync(id, ct);   // tracked entity — required to remove
+        if (grade is null) return false;
+
+        repo.Remove(grade);
+        await uow.SaveChangesAsync(ct);
+        return true;
+    }
+}
+```
+
+Notice `GetAllAsync`/`GetByIdAsync` call the **generic projected** repository methods from step 4.2 directly, handing in the DTO-mapping expression — the SQL projection and the DTO shape are decided right here, in one place, instead of "fetch everything, then map in the controller."
+
+Register it in `Program.cs`, next to the repository registration:
+```csharp
+builder.Services.AddScoped<IGradeService, GradeService>();
+```
+
+✅ **Checkpoint:** builds (once `GradeDto`/`CreateGradeRequest` exist from step 5.1 — if you're doing this before 5.1, that's expected to not compile yet; come back to this checkpoint after 5.1). You can explain: repository = "how do I talk to the database", service = "what does this feature actually do", controller = "translate HTTP to a service call and back". This is the exact shape Block and Crop will repeat in step 5.
+
 ## Step 5 — First controller: Grades CRUD (M3)
 
 *Concept:* controller = HTTP translator. DTOs in, DTOs out; entities never cross the wire ([doc 11](<../AI Guide/11-coding-standards.md>)).
@@ -343,13 +455,33 @@ public record GradeDto(int GradeId, string Name);
 public record CreateGradeRequest(string Name);
 ```
 
+Now go build `IGradeService`/`GradeService` from step 4.6 if you haven't yet — they need these two records to exist.
+
+> **POPI standing rule, worth locking in now even though Grade doesn't trigger it:** once real personal information shows up (`Customer`, `Supplier`, `AppUser` — [doc 13](<../AI Guide/13-auth-and-logging.md>)), it travels in the **request body only** — never as a route or query-string parameter. A URL like `GET /customers?phone=0821234567` ends up in server access logs and browser history; a POST body doesn't. Route parameters stay limited to opaque numeric IDs (`{id:int}`), which aren't personal information themselves. `[FromBody]` on every write DTO (step 5.3) makes this explicit rather than relying on ASP.NET Core's default inference.
+
 ### 5.2 — Validation (plain FluentValidation — no auto-magic package, so it always works regardless of version)
 
 **VS:** right-click **FarmApp.Api** → Manage NuGet Packages → install `FluentValidation`.
 
+First, a tiny **shared abstraction** so "required, max length N" isn't retyped in every validator — right-click **FarmApp.Api** → Add → New Folder → `Shared`. Add → Class → `ValidationExtensions.cs`:
+```csharp
+using FluentValidation;
+
+namespace FarmApp.Api.Shared;
+
+public static class ValidationExtensions
+{
+    /// <summary>Not empty + max length — the common shape for a required display name.</summary>
+    public static IRuleBuilderOptions<T, string> RequiredName<T>(
+        this IRuleBuilder<T, string> ruleBuilder, int maxLength = 50)
+        => ruleBuilder.NotEmpty().MaximumLength(maxLength);
+}
+```
+
 Right-click the `Grades` folder → Add → Class → `CreateGradeRequestValidator.cs`.
 
 ```csharp
+using FarmApp.Api.Shared;
 using FluentValidation;
 
 namespace FarmApp.Api.Features.Grades;
@@ -358,7 +490,7 @@ public class CreateGradeRequestValidator : AbstractValidator<CreateGradeRequest>
 {
     public CreateGradeRequestValidator()
     {
-        RuleFor(x => x.Name).NotEmpty().MaximumLength(50);
+        RuleFor(x => x.Name).RequiredName();
     }
 }
 ```
@@ -371,74 +503,81 @@ using FarmApp.Api.Features.Grades;
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 ```
 
-### 5.3 — The controller
+Second shared piece: every controller below needs to turn a failed `ValidationResult` into the same 400 response. Right-click `Shared` → Add → Class → `ApiControllerBase.cs`:
+```csharp
+using FluentValidation.Results;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FarmApp.Api.Shared;
+
+/// <summary>Base for feature controllers — turns a FluentValidation result into the same
+/// ProblemDetails 400 response every controller used to build by hand.</summary>
+public abstract class ApiControllerBase : ControllerBase
+{
+    protected ActionResult ValidationProblem(ValidationResult result)
+    {
+        foreach (var error in result.Errors)
+            ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+        return ValidationProblem(ModelState);
+    }
+}
+```
+Controllers inherit `ApiControllerBase` instead of `ControllerBase` from here on, and every write action shrinks its validation-handling block from four lines to one: `if (!result.IsValid) return ValidationProblem(result);`.
+
+### 5.3 — The controller (thin — the service from step 4.6 does the work)
 
 Right-click the `Grades` folder → Add → Class → `GradesController.cs`.
 
 ```csharp
-using FarmApp.Domain.Entities;
-using FarmApp.Domain.Repositories;
 using FluentValidation;
+using FarmApp.Api.Shared;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FarmApp.Api.Features.Grades;
 
 [ApiController]
 [Route("api/v1/[controller]")]
-public class GradesController(IGradeRepository repo, IUnitOfWork uow) : ControllerBase
+public class GradesController(IGradeService service) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<List<GradeDto>>> GetAll(CancellationToken ct)
-    {
-        var grades = await repo.GetAllAsync(ct);
-        return grades.Select(g => new GradeDto(g.GradeId, g.Name)).ToList();
-    }
+        => await service.GetAllAsync(ct);
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<GradeDto>> GetById(int id, CancellationToken ct)
     {
-        var grade = await repo.GetByIdAsync(id, ct);
-        return grade is null ? NotFound() : new GradeDto(grade.GradeId, grade.Name);
+        var grade = await service.GetByIdAsync(id, ct);
+        return grade is null ? NotFound() : grade;
     }
 
     [HttpPost]
     public async Task<ActionResult<GradeDto>> Create(
-        CreateGradeRequest request, IValidator<CreateGradeRequest> validator, CancellationToken ct)
+        [FromBody] CreateGradeRequest request, IValidator<CreateGradeRequest> validator, CancellationToken ct)
     {
         var result = await validator.ValidateAsync(request, ct);
-        if (!result.IsValid)
-        {
-            foreach (var e in result.Errors) ModelState.AddModelError(e.PropertyName, e.ErrorMessage);
-            return ValidationProblem(ModelState);
-        }
+        if (!result.IsValid) return ValidationProblem(result);
 
-        var grade = new Grade { Name = request.Name };
-        await repo.AddAsync(grade, ct);
-        await uow.SaveChangesAsync(ct);
-        return CreatedAtAction(nameof(GetById), new { id = grade.GradeId }, new GradeDto(grade.GradeId, grade.Name));
+        var dto = await service.CreateAsync(request, ct);
+        return CreatedAtAction(nameof(GetById), new { id = dto.GradeId }, dto);
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, CreateGradeRequest request, CancellationToken ct)
+    public async Task<IActionResult> Update(
+        int id, [FromBody] CreateGradeRequest request, IValidator<CreateGradeRequest> validator, CancellationToken ct)
     {
-        var grade = await repo.GetByIdAsync(id, ct);
-        if (grade is null) return NotFound();
-        grade.Name = request.Name;
-        await uow.SaveChangesAsync(ct);
-        return NoContent();
+        var result = await validator.ValidateAsync(request, ct);
+        if (!result.IsValid) return ValidationProblem(result);
+
+        return await service.UpdateAsync(id, request, ct) ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
-    {
-        var grade = await repo.GetByIdAsync(id, ct);
-        if (grade is null) return NotFound();
-        repo.Remove(grade);
-        await uow.SaveChangesAsync(ct);
-        return NoContent();
-    }
+        => await service.DeleteAsync(id, ct) ? NoContent() : NotFound();
 }
 ```
+
+Compare this to step 4.6's `GradeService` — every line here is either "read a value off the HTTP request" or "translate a result into an HTTP response." No entity construction, no DTO mapping, no repository/`IUnitOfWork` calls. That's the whole point of the split.
 
 ### 5.4 — Run it and click around
 
@@ -458,13 +597,15 @@ if (app.Environment.IsDevelopment())
 ```
 Run again, then browse to `https://localhost:<port>/swagger`. Exercise every verb: create "Class 1", list it, rename it, delete it, and try posting an empty name to see the 400. Watch rows appear in SSMS as you go.
 
-✅ **Checkpoint:** full CRUD via Swagger, validation errors are clean 400s. Commit: `"M3 grades CRUD"`. **This step is the template for every master-data table in the app** — Block and Crop follow exactly this shape (entity → config → migration → repository interface → implementation → DI → DTOs → validator → controller).
+✅ **Checkpoint:** full CRUD via Swagger, validation errors are clean 400s. Commit: `"M3 grades CRUD"`. **This step is the template for every master-data table in the app** — Block and Crop follow exactly this shape (entity → config → migration → repository interface → implementation → service → DI → DTOs → validator → controller).
 
 ## Step 6 — Pause: wire the frontend (M4)
 
 Jump to [03-frontend-guide.md](03-frontend-guide.md) steps 1–5 and get Angular listing your grades. Reason: seeing the full loop FE → API → DB early changes how you think about everything after; and you'll hit CORS now, with the simplest possible setup to debug it in (the FE guide covers the fix).
 
 ## Step 7 — Authentication & authorization (M5) — spec: [doc 13](<../AI Guide/13-auth-and-logging.md>) Part A
+
+*This step is the answer to "JWT auth on controllers"* — every controller ends up behind the deny-by-default fallback policy from 7.5, with `[Authorize(Policy = "CanManageMasterData")]` on writes. Nothing to add on top of what's already here; do this step for real once you're ready to lock the API down, rather than leaving it as a read-only reference.
 
 Order matters here; each sub-step is testable.
 
@@ -754,6 +895,8 @@ Seeing 401 vs 403 side by side teaches the authentication-vs-authorization diffe
 
 ## Step 8 — Logging pipeline (M6) — spec: [doc 13](<../AI Guide/13-auth-and-logging.md>) Part B
 
+*This step is the answer to "add logging, efficiently"* — one structured log event per request via middleware, not scattered `logger.LogInformation` calls through services. Two POPI-relevant details already baked into 8.3, worth reading again with that lens: `Redact()` strips `password`/`pin`/`refreshToken` out of logged bodies, and the middleware only ever reads `ctx.Request.Body`/`ctx.Response.Body` — it never touches `ctx.Request.Headers`, so the `Authorization: Bearer <token>` header is never written to a log file at all, by construction. If log volume ever becomes a real concern once Sale/Customer traffic is high, the efficient refinement is to only capture full bodies for non-2xx responses and writes, and just method/path/status/duration for successful GETs — not needed yet, worth remembering as an option.
+
 *Concept:* middleware = a nesting-doll pipeline around every request. Log once in the pipeline → **zero logger calls in services/repos** (the hard rule).
 
 ### 8.1 — Install and configure Serilog
@@ -915,9 +1058,11 @@ The teaching phase is over; now it's reps. For **every new feature**, follow the
 
 ```
 entity (Domain/Entities) → configuration (Infrastructure/Persistence/Configurations)
-→ migration (.\ef-add.ps1 <Name>) → repository interface (Domain/Repositories)
-→ repository implementation (Infrastructure/Persistence/Repositories) → DI registration (Program.cs)
-→ DTOs + validator + controller (Api/Features/<Name>) → policy → (FE screen, see frontend guide)
+→ migration (.\ef-add.ps1 <Name>) → repository interface with projected reads (Domain/Repositories)
+→ repository implementation (Infrastructure/Persistence/Repositories)
+→ DTOs (Api/Features/<Name>) → service interface + implementation (Api/Features/<Name>)
+→ DI registration (Program.cs) → validator, using .RequiredName()/other shared rules (Api/Features/<Name>)
+→ thin controller extending ApiControllerBase (Api/Features/<Name>) → policy → (FE screen, see frontend guide)
 ```
 
 1. **Master data** (M7): Product (with ProductType/MakeMode — [doc 02](<../AI Guide/02-data-model.md>)), PackSize, Block, Crop/Cultivar, InputItem, Supplier, Customer, PriceList/Price. Also `AccountingPeriod` + its SaveChanges date-check interceptor, and the audit interceptor ([doc 10](<../AI Guide/10-go-live-controls.md>), [doc 12](<../AI Guide/12-implementation-handoff.md>)) — interceptors are middleware's cousin for the DB side.

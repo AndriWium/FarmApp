@@ -17,6 +17,10 @@ builder.Services.AddScoped<IBlockRepository, BlockRepository>();
 builder.Services.AddScoped<ICropRepository, CropRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
+builder.Services.AddScoped<IGradeService, GradeService>();
+builder.Services.AddScoped<IBlockService, BlockService>();
+builder.Services.AddScoped<ICropService, CropService>();
+
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateBlockRequest>, CreateBlockRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateCropRequest>, CreateCropRequestValidator>();

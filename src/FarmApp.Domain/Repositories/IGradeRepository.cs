@@ -1,11 +1,13 @@
-﻿using FarmApp.Domain.Entities;
+using System.Linq.Expressions;
+using FarmApp.Domain.Entities;
 
 namespace FarmApp.Domain.Repositories;
 
 public interface IGradeRepository
 {
     Task<Grade?> GetByIdAsync(int id, CancellationToken ct);
-    Task<List<Grade>> GetAllAsync(CancellationToken ct);
+    Task<TResult?> GetByIdAsync<TResult>(int id, Expression<Func<Grade, TResult>> selector, CancellationToken ct);
+    Task<List<TResult>> GetAllAsync<TResult>(Expression<Func<Grade, TResult>> selector, CancellationToken ct);
     Task AddAsync(Grade grade, CancellationToken ct);
     void Remove(Grade grade);
 }

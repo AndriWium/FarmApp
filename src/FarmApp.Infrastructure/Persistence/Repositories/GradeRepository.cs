@@ -1,28 +1,30 @@
-﻿using FarmApp.Domain.Entities;
+using System.Linq.Expressions;
+using FarmApp.Domain.Entities;
 using FarmApp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace FarmApp.Infrastructure.Persistence.Repositories;
 
-public class GradeRepository (FarmAppDbContext db) : IGradeRepository
+public class GradeRepository(FarmAppDbContext db) : IGradeRepository
 {
     public Task<Grade?> GetByIdAsync(int id, CancellationToken ct)
-    {
-        return db.Grades.FirstOrDefaultAsync(x => x.GradeId == id, ct);
-    }
+        => db.Grades.FirstOrDefaultAsync(x => x.GradeId == id, ct);
 
-    public Task<List<Grade>> GetAllAsync(CancellationToken ct)
-    {
-        return db.Grades.AsNoTracking().ToListAsync(ct);
-    } 
+    public Task<TResult?> GetByIdAsync<TResult>(int id, Expression<Func<Grade, TResult>> selector, CancellationToken ct)
+        => db.Grades.AsNoTracking()
+            .Where(x => x.GradeId == id)
+            .Select(selector)
+            .FirstOrDefaultAsync(ct);
+
+    public Task<List<TResult>> GetAllAsync<TResult>(Expression<Func<Grade, TResult>> selector, CancellationToken ct)
+        => db.Grades.AsNoTracking()
+            .OrderBy(x => x.Name)
+            .Select(selector)
+            .ToListAsync(ct);
 
     public async Task AddAsync(Grade grade, CancellationToken ct)
-    { 
-        await db.Grades.AddAsync(grade, ct);
-    }
+        => await db.Grades.AddAsync(grade, ct);
 
     public void Remove(Grade grade)
-    {
-        db.Grades.Remove(grade);
-    }
+        => db.Grades.Remove(grade);
 }
