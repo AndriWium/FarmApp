@@ -16,15 +16,17 @@ public class BlockRepository(FarmAppDbContext db) : IBlockRepository
             .Select(selector)
             .FirstOrDefaultAsync(ct);
 
-    public Task<List<TResult>> GetAllAsync<TResult>(Expression<Func<Block, TResult>> selector, CancellationToken ct)
+    public Task<List<TResult>> GetAllAsync<TResult>(Expression<Func<Block, TResult>> selector, bool includeInactive, CancellationToken ct)
         => db.Blocks.AsNoTracking()
+            .Where(x => includeInactive || x.IsActive)
             .OrderBy(x => x.Name)
             .Select(selector)
             .ToListAsync(ct);
 
+    public Task<bool> ExistsByNameAsync(string name, int? excludeId, CancellationToken ct)
+        => db.Blocks.AsNoTracking()
+            .AnyAsync(x => x.Name == name && (excludeId == null || x.BlockId != excludeId), ct);
+
     public async Task AddAsync(Block block, CancellationToken ct)
         => await db.Blocks.AddAsync(block, ct);
-
-    public void Remove(Block block)
-        => db.Blocks.Remove(block);
 }

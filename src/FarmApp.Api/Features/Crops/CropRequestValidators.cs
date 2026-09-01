@@ -10,3 +10,11 @@ public class CreateCropRequestValidator : AbstractValidator<CreateCropRequest>
         RuleFor(x => x.Name).RequiredName();
     }
 }
+
+public class UpdateCropRequestValidator : AbstractValidator<UpdateCropRequest>
+{
+    public UpdateCropRequestValidator()
+    {
+        RuleFor(x => x.Name).RequiredName();
+    }
+}

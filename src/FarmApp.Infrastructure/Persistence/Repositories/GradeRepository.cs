@@ -16,15 +16,17 @@ public class GradeRepository(FarmAppDbContext db) : IGradeRepository
             .Select(selector)
             .FirstOrDefaultAsync(ct);
 
-    public Task<List<TResult>> GetAllAsync<TResult>(Expression<Func<Grade, TResult>> selector, CancellationToken ct)
+    public Task<List<TResult>> GetAllAsync<TResult>(Expression<Func<Grade, TResult>> selector, bool includeInactive, CancellationToken ct)
         => db.Grades.AsNoTracking()
+            .Where(x => includeInactive || x.IsActive)
             .OrderBy(x => x.Name)
             .Select(selector)
             .ToListAsync(ct);
 
+    public Task<bool> ExistsByNameAsync(string name, int? excludeId, CancellationToken ct)
+        => db.Grades.AsNoTracking()
+            .AnyAsync(x => x.Name == name && (excludeId == null || x.GradeId != excludeId), ct);
+
     public async Task AddAsync(Grade grade, CancellationToken ct)
         => await db.Grades.AddAsync(grade, ct);
-
-    public void Remove(Grade grade)
-        => db.Grades.Remove(grade);
 }

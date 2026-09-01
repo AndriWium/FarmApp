@@ -13,3 +13,10 @@ public record CreateBlockRequest(
     decimal AreaHectare,
     string Note
     );
+
+public record UpdateBlockRequest(
+    string Name,
+    decimal AreaHectare,
+    string Note,
+    bool IsActive
+    );

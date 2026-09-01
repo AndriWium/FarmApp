@@ -10,3 +10,11 @@ public class CreateGradeRequestValidator : AbstractValidator<CreateGradeRequest>
         RuleFor(x => x.Name).RequiredName();
     }
 }
+
+public class UpdateGradeRequestValidator : AbstractValidator<UpdateGradeRequest>
+{
+    public UpdateGradeRequestValidator()
+    {
+        RuleFor(x => x.Name).RequiredName();
+    }
+}

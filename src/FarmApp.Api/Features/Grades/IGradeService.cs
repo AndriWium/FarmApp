@@ -1,10 +1,12 @@
+using FarmApp.Api.Shared;
+
 namespace FarmApp.Api.Features.Grades;
 
 public interface IGradeService
 {
-    Task<List<GradeDto>> GetAllAsync(CancellationToken ct);
+    Task<List<GradeDto>> GetAllAsync(bool includeInactive, CancellationToken ct);
     Task<GradeDto?> GetByIdAsync(int id, CancellationToken ct);
-    Task<GradeDto> CreateAsync(CreateGradeRequest request, CancellationToken ct);
-    Task<bool> UpdateAsync(int id, CreateGradeRequest request, CancellationToken ct);
-    Task<bool> DeleteAsync(int id, CancellationToken ct);
+    Task<ServiceResult<GradeDto>> CreateAsync(CreateGradeRequest request, CancellationToken ct);
+    Task<ServiceError> UpdateAsync(int id, UpdateGradeRequest request, CancellationToken ct);
+    Task<ServiceError> DeactivateAsync(int id, CancellationToken ct);
 }

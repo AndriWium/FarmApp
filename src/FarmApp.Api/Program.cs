@@ -22,8 +22,11 @@ builder.Services.AddScoped<IBlockService, BlockService>();
 builder.Services.AddScoped<ICropService, CropService>();
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
+builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateBlockRequest>, CreateBlockRequestValidator>();
+builder.Services.AddScoped<IValidator<UpdateBlockRequest>, UpdateBlockRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateCropRequest>, CreateCropRequestValidator>();
+builder.Services.AddScoped<IValidator<UpdateCropRequest>, UpdateCropRequestValidator>();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();

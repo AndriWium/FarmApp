@@ -13,5 +13,6 @@ public class BlockConfiguration : IEntityTypeConfiguration<Block>
         b.HasIndex(x => x.Name).IsUnique();
         b.Property(x => x.AreaHectare).HasPrecision(18, 3);
         b.Property(x => x.Note).HasMaxLength(500);
+        b.Property(x => x.IsActive).HasDefaultValue(true);
     }
 }

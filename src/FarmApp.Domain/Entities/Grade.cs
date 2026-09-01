@@ -3,5 +3,6 @@ namespace FarmApp.Domain.Entities;
 public class Grade
 {
     public int GradeId { get; set; }
-    public string Name { get; set; } = null!;
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
 }

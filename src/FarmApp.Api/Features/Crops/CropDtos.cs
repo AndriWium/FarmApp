@@ -1,8 +1,7 @@
-﻿namespace FarmApp.Api.Features.Crops;
+namespace FarmApp.Api.Features.Crops;
 
-public record CropDto(
-    int CropId,
-    string Name
-    );
+public record CropDto(int CropId, string Name, bool IsActive);
 
 public record CreateCropRequest(string Name);
+
+public record UpdateCropRequest(string Name, bool IsActive);

@@ -11,5 +11,6 @@ public class CropConfiguration : IEntityTypeConfiguration<Crop>
         b.HasKey(x => x.CropId);
         b.Property(x => x.Name).HasMaxLength(50).IsRequired();
         b.HasIndex(x => x.Name).IsUnique();
+        b.Property(x => x.IsActive).HasDefaultValue(true);
     }
 }

@@ -1,8 +1,7 @@
-﻿namespace FarmApp.Api.Features.Grades;
+namespace FarmApp.Api.Features.Grades;
 
-public record GradeDto(
-    int GradeId,
-    string Name
-    );
+public record GradeDto(int GradeId, string Name, bool IsActive);
 
 public record CreateGradeRequest(string Name);
+
+public record UpdateGradeRequest(string Name, bool IsActive);
