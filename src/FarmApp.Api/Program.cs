@@ -3,6 +3,7 @@ using FarmApp.Api.Application.Auth;
 using FarmApp.Api.Application.Blocks;
 using FarmApp.Api.Application.Crops;
 using FarmApp.Api.Application.Grades;
+using FarmApp.Api.Middleware;
 using FarmApp.Domain.Entities;
 using FarmApp.Domain.Repositories;
 using FarmApp.Infrastructure.Persistence;
@@ -14,8 +15,19 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
+    .Enrich.WithEnvironmentName()
+    .WriteTo.Console()
+    .WriteTo.File(new Serilog.Formatting.Json.JsonFormatter(), "logs/farmapp-.json",
+        rollingInterval: RollingInterval.Day, retainedFileCountLimit: 31)
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 
 builder.Services.AddDbContext<FarmAppDbContext>(o =>
     o.UseSqlServer(builder.Configuration.GetConnectionString("FarmApp")));
@@ -61,6 +73,7 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy("CanManageMasterData", p => p.RequireRole("Owner"));
 
 builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
 
 // Swashbuckle's own SwaggerGen document generation (replaces Microsoft.AspNetCore.OpenApi's
 // AddOpenApi/MapOpenApi — see DECISIONS.md) so the standard AddSecurityDefinition/
@@ -108,6 +121,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<RequestResponseLoggingMiddleware>();
 
 app.UseCors("Fe");
 

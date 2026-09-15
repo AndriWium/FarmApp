@@ -496,3 +496,7 @@ web/*/.angular/
 # secrets pulled in locally, never committed (../AI Guide/13-auth-and-logging.md)
 **/appsettings.Local.json
 **/appsettings.Production.json
+
+# Serilog rolling file sink output (../AI Guide/13-auth-and-logging.md Part B) - can contain
+# customer names/payloads, treat like DB data, never committed
+src/FarmApp.Api/logs/
