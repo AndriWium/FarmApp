@@ -1,6 +1,6 @@
-using FarmApp.Api.Shared;
+using FarmApp.Api.Application.Common;
 
-namespace FarmApp.Api.Features.Blocks;
+namespace FarmApp.Api.Application.Blocks;
 
 public interface IBlockService
 {

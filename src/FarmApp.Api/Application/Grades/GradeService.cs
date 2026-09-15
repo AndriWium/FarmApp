@@ -1,8 +1,8 @@
-using FarmApp.Api.Shared;
+using FarmApp.Api.Application.Common;
 using FarmApp.Domain.Entities;
 using FarmApp.Domain.Repositories;
 
-namespace FarmApp.Api.Features.Grades;
+namespace FarmApp.Api.Application.Grades;
 
 public class GradeService(IGradeRepository repo, IUnitOfWork uow) : IGradeService
 {

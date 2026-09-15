@@ -1,7 +1,7 @@
-using FarmApp.Api.Shared;
+using FarmApp.Api.Application.Common;
 using FluentValidation;
 
-namespace FarmApp.Api.Features.Grades;
+namespace FarmApp.Api.Application.Grades;
 
 public class CreateGradeRequestValidator : AbstractValidator<CreateGradeRequest>
 {

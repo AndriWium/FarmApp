@@ -1,8 +1,8 @@
-using FarmApp.Api.Shared;
+using FarmApp.Api.Application.Common;
 using FarmApp.Domain.Entities;
 using FarmApp.Domain.Repositories;
 
-namespace FarmApp.Api.Features.Blocks;
+namespace FarmApp.Api.Application.Blocks;
 
 public class BlockService(IBlockRepository repo, IUnitOfWork uow) : IBlockService
 {

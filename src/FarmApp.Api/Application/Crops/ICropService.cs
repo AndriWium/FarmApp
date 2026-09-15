@@ -1,6 +1,6 @@
-using FarmApp.Api.Shared;
+using FarmApp.Api.Application.Common;
 
-namespace FarmApp.Api.Features.Crops;
+namespace FarmApp.Api.Application.Crops;
 
 public interface ICropService
 {

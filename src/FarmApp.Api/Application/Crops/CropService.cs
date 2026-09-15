@@ -1,8 +1,8 @@
-using FarmApp.Api.Shared;
+using FarmApp.Api.Application.Common;
 using FarmApp.Domain.Entities;
 using FarmApp.Domain.Repositories;
 
-namespace FarmApp.Api.Features.Crops;
+namespace FarmApp.Api.Application.Crops;
 
 public class CropService(ICropRepository repo, IUnitOfWork uow) : ICropService
 {

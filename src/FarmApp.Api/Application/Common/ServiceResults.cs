@@ -1,7 +1,7 @@
-namespace FarmApp.Api.Shared;
+namespace FarmApp.Api.Application.Common;
 
 /// <summary>Business-rule outcomes a service can report without throwing.
-/// Controllers map these to HTTP statuses in one place (ApiControllerBase).</summary>
+/// The Presentation layer maps these to HTTP statuses in one place (ApiControllerBase).</summary>
 public enum ServiceError
 {
     None,

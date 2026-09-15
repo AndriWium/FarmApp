@@ -1,8 +1,9 @@
-using FarmApp.Api.Shared;
+using FarmApp.Api.Application.Blocks;
+using FarmApp.Api.Application.Common;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FarmApp.Api.Features.Blocks;
+namespace FarmApp.Api.Presentation.Controllers;
 
 [ApiController]
 [Route("api/v1/[controller]")]

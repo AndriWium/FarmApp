@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace FarmApp.Api.Shared;
+namespace FarmApp.Api.Application.Common;
 
 public static class ValidationExtensions
 {

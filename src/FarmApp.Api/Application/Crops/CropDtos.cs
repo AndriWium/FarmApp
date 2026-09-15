@@ -1,4 +1,4 @@
-namespace FarmApp.Api.Features.Crops;
+namespace FarmApp.Api.Application.Crops;
 
 public record CropDto(int CropId, string Name, bool IsActive);
 

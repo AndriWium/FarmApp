@@ -1,4 +1,4 @@
-namespace FarmApp.Api.Features.Grades;
+namespace FarmApp.Api.Application.Grades;
 
 public record GradeDto(int GradeId, string Name, bool IsActive);
 

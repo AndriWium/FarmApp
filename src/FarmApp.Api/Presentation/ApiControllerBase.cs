@@ -1,10 +1,12 @@
+using FarmApp.Api.Application.Common;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FarmApp.Api.Shared;
+namespace FarmApp.Api.Presentation;
 
 /// <summary>Base for feature controllers — shared translations from validation
-/// and service outcomes into consistent HTTP responses.</summary>
+/// and service outcomes into consistent HTTP responses. Presentation-layer only:
+/// it knows about ActionResult/HTTP status codes, nothing about how a feature works.</summary>
 public abstract class ApiControllerBase : ControllerBase
 {
     protected ActionResult ValidationProblem(ValidationResult result)

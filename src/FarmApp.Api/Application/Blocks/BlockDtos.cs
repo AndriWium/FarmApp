@@ -1,4 +1,4 @@
-namespace FarmApp.Api.Features.Blocks;
+namespace FarmApp.Api.Application.Blocks;
 
 public record BlockDto(
     int BlockId,
