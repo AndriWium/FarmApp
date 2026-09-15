@@ -35,23 +35,24 @@ public class SaleService(
         return result;
     }
 
-    public async Task<ServiceResult<SaleDto>> CreateSaleAsync(CreateSaleRequest request, CancellationToken ct)
+    public async Task<ServiceResult<CreateSaleResult>> CreateSaleAsync(CreateSaleRequest request, CancellationToken ct)
     {
         // 1. Idempotency, first thing, before anything else is even validated (doc 08): a retried
         // POST with a ClientGuid we've already processed returns the existing sale unchanged -
         // never reprocessed, never re-depletes stock. This is what makes an offline-retry safe.
+        // WasReplay: true tells the controller to answer 200, not 201 (doc 08's own example).
         var existing = await saleRepo.GetByClientGuidAsync(request.ClientGuid, ct);
         if (existing is not null)
-            return ServiceResult<SaleDto>.Ok(await ToDtoAsync(existing, ct));
+            return ServiceResult<CreateSaleResult>.Ok(new CreateSaleResult(await ToDtoAsync(existing, ct), WasReplay: true));
 
         // 2. The till session must exist and be open - a sale can't happen against a closed till.
         var till = await tillSessionRepo.GetByIdAsync(request.TillSessionId, ct);
-        if (till is null) return ServiceResult<SaleDto>.Fail(ServiceError.NotFound);
-        if (till.ClosedAt is not null) return ServiceResult<SaleDto>.Fail(ServiceError.TillSessionClosed);
+        if (till is null) return ServiceResult<CreateSaleResult>.Fail(ServiceError.NotFound);
+        if (till.ClosedAt is not null) return ServiceResult<CreateSaleResult>.Fail(ServiceError.TillSessionClosed);
 
         // 3. Customer, if supplied, must exist.
         if (request.CustomerId is not null && await customerRepo.GetByIdAsync(request.CustomerId.Value, ct) is null)
-            return ServiceResult<SaleDto>.Fail(ServiceError.NotFound);
+            return ServiceResult<CreateSaleResult>.Fail(ServiceError.NotFound);
 
         // 4. Every line's Product/Grade/PackSize must exist and (for PackSize) actually belong to
         // that line's Product - validated up front, before any write, same discipline as
@@ -59,23 +60,23 @@ public class SaleService(
         foreach (var line in request.Lines)
         {
             if (await productRepo.GetByIdAsync(line.ProductId, ct) is null)
-                return ServiceResult<SaleDto>.Fail(ServiceError.NotFound);
+                return ServiceResult<CreateSaleResult>.Fail(ServiceError.NotFound);
 
             if (line.GradeId is not null && await gradeRepo.GetByIdAsync(line.GradeId.Value, ct) is null)
-                return ServiceResult<SaleDto>.Fail(ServiceError.NotFound);
+                return ServiceResult<CreateSaleResult>.Fail(ServiceError.NotFound);
 
             if (line.PackSizeId is not null)
             {
                 var packSize = await packSizeRepo.GetByIdAsync(line.PackSizeId.Value, p => new { p.ProductId }, ct);
                 if (packSize is null || packSize.ProductId != line.ProductId)
-                    return ServiceResult<SaleDto>.Fail(ServiceError.NotFound);
+                    return ServiceResult<CreateSaleResult>.Fail(ServiceError.NotFound);
             }
         }
 
         // 5. An Account payment always needs a customer to put the debt against - no anonymous
         // walk-in sale can go on account.
         if (request.Payments.Any(p => p.Method == SalePaymentMethod.Account) && request.CustomerId is null)
-            return ServiceResult<SaleDto>.Fail(ServiceError.AccountPaymentRequiresCustomer);
+            return ServiceResult<CreateSaleResult>.Fail(ServiceError.AccountPaymentRequiresCustomer);
 
         // 6. Payments must exactly cover the computed line total - no partial/short payments this
         // phase (task brief). The line total only depends on the request itself (Qty/UnitPrice/
@@ -83,7 +84,7 @@ public class SaleService(
         var lineTotal = request.Lines.Sum(l => (l.Qty * l.UnitPrice) - l.DiscountAmount);
         var paymentTotal = request.Payments.Sum(p => p.Amount);
         if (paymentTotal != lineTotal)
-            return ServiceResult<SaleDto>.Fail(ServiceError.PaymentMismatch,
+            return ServiceResult<CreateSaleResult>.Fail(ServiceError.PaymentMismatch,
                 $"Payments total {paymentTotal:0.00}, sale total is {lineTotal:0.00}.");
 
         // Everything above is deterministic from the request alone; only stock availability can
@@ -136,8 +137,20 @@ public class SaleService(
                     // Sale header already saved above and any earlier line's already-added
                     // movements: nothing about this sale survives (task brief's check #4).
                     await uow.RollbackTransactionAsync(ct);
-                    return ServiceResult<SaleDto>.Fail(depletion.Error, depletion.Detail!);
+                    return ServiceResult<CreateSaleResult>.Fail(depletion.Error, depletion.Detail!);
                 }
+
+                // Flush this line's movements now, before the next line's FIFO allocation query
+                // runs. IStockMovementRepository.GetAvailableBatchesAsync re-reads on-hand from
+                // the database (not the change tracker) - without this, two lines selling the
+                // same product/grade would each compute availability from the same starting
+                // snapshot and could double-allocate the same batch capacity (caught in testing:
+                // a 12kg line fully draining a 5kg batch, followed by a 1.5kg line that should
+                // spill into the next batch, instead "found" 5kg still sitting in the first batch
+                // because its depleting movements hadn't been flushed yet). Still inside the one
+                // transaction opened above, so this doesn't weaken atomicity - a later line's
+                // failure still rolls every earlier flush back too.
+                await uow.SaveChangesAsync(ct);
 
                 // A sale line can legitimately span two batches at different costs - CostAtSale is
                 // the qty-weighted average across whichever batches FIFO actually touched, never
@@ -177,7 +190,7 @@ public class SaleService(
             await uow.SaveChangesAsync(ct);
             await uow.CommitTransactionAsync(ct);
 
-            return ServiceResult<SaleDto>.Ok(await ToDtoAsync(sale, ct));
+            return ServiceResult<CreateSaleResult>.Ok(new CreateSaleResult(await ToDtoAsync(sale, ct), WasReplay: false));
         }
         catch
         {

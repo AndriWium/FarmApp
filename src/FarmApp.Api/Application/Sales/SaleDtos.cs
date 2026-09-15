@@ -23,3 +23,8 @@ public record SalePaymentDto(int SalePaymentId, SalePaymentMethod Method, decima
 public record SaleDto(
     int SaleId, int TillSessionId, int? CustomerId, DateTime DateTime, SaleChannel Channel,
     SaleStatus Status, string? Notes, Guid ClientGuid, List<SaleLineDto> Lines, List<SalePaymentDto> Payments);
+
+/// <summary>WasReplay tells the controller which HTTP status to use (doc 08: a first-time
+/// ClientGuid creates and returns 201, a replayed one does nothing new and returns 200 with the
+/// same, already-existing sale) without the controller needing its own second lookup.</summary>
+public record CreateSaleResult(SaleDto Sale, bool WasReplay);

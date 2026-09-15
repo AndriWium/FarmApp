@@ -29,7 +29,12 @@ public class SalesController(ISaleService service) : ApiControllerBase
                 : ErrorResult(result.Error, "till session, customer, product, grade, or pack size", result.Detail);
         }
 
-        return CreatedAtAction(nameof(GetById), new { id = result.Value!.SaleId }, result.Value);
+        var (sale, wasReplay) = result.Value!;
+        // A replayed ClientGuid (doc 08) did nothing new - the existing sale comes back as 200,
+        // not 201, so a retrying client can tell "already had this" from "just created this".
+        return wasReplay
+            ? Ok(sale)
+            : CreatedAtAction(nameof(GetById), new { id = sale.SaleId }, sale);
     }
 
     [HttpGet("{id:int}")]
