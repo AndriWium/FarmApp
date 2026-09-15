@@ -4,7 +4,12 @@ using FarmApp.Domain.Repositories;
 
 namespace FarmApp.Api.Application.Products;
 
-public class ProductService(IProductRepository repo, ICropRepository cropRepo, IUnitOfWork uow) : IProductService
+public class ProductService(
+    IProductRepository repo,
+    ICropRepository cropRepo,
+    IRecipeLineRepository recipeLineRepo,
+    IInputItemRepository inputItemRepo,
+    IUnitOfWork uow) : IProductService
 {
     public Task<List<ProductDto>> GetAllAsync(bool includeInactive, CancellationToken ct)
         => repo.GetAllAsync(ToDtoExpr, includeInactive, ct);
@@ -65,6 +70,47 @@ public class ProductService(IProductRepository repo, ICropRepository cropRepo, I
         await uow.SaveChangesAsync(ct);
         return ServiceError.None;
     }
+
+    public async Task<ProductWithRecipeDto?> GetWithRecipeAsync(int productId, CancellationToken ct)
+    {
+        var product = await repo.GetByIdAsync(productId, ct);
+        if (product is null) return null;
+
+        var lines = await recipeLineRepo.GetByProductIdAsync(
+            productId, x => new RecipeLineDto(x.RecipeLineId, x.InputItemId, x.Qty), ct);
+        return ToWithRecipeDto(product, lines);
+    }
+
+    public async Task<ServiceResult<ProductWithRecipeDto>> SetRecipeAsync(
+        int productId, List<RecipeLineRequest> lines, CancellationToken ct)
+    {
+        var product = await repo.GetByIdAsync(productId, ct);
+        if (product is null) return ServiceResult<ProductWithRecipeDto>.Fail(ServiceError.NotFound);
+
+        // Validate every ingredient exists before mutating anything - reject the whole call
+        // if any InputItemId is bad, don't partially apply a broken recipe.
+        foreach (var line in lines)
+        {
+            if (await inputItemRepo.GetByIdAsync(line.InputItemId, ct) is null)
+                return ServiceResult<ProductWithRecipeDto>.Fail(ServiceError.NotFound);
+        }
+
+        var existing = await recipeLineRepo.GetByProductIdAsync(productId, ct);
+        recipeLineRepo.RemoveRange(existing);
+
+        var newLines = lines
+            .Select(l => new RecipeLine { ProductId = productId, InputItemId = l.InputItemId, Qty = l.Qty })
+            .ToList();
+        await recipeLineRepo.AddRangeAsync(newLines, ct);
+
+        await uow.SaveChangesAsync(ct);   // one SaveChanges for the whole replace - atomic
+
+        var dtoLines = newLines.Select(x => new RecipeLineDto(x.RecipeLineId, x.InputItemId, x.Qty)).ToList();
+        return ServiceResult<ProductWithRecipeDto>.Ok(ToWithRecipeDto(product, dtoLines));
+    }
+
+    private static ProductWithRecipeDto ToWithRecipeDto(Product x, List<RecipeLineDto> lines) =>
+        new(x.ProductId, x.Name, x.ProductType, x.CropId, x.MakeMode, x.BaseUnit, x.IsActive, lines);
 
     private static readonly System.Linq.Expressions.Expression<Func<Product, ProductDto>> ToDtoExpr =
         x => new ProductDto(x.ProductId, x.Name, x.ProductType, x.CropId, x.MakeMode, x.BaseUnit, x.IsActive);

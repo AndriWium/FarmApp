@@ -57,6 +57,7 @@ builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
 builder.Services.AddScoped<IPriceListRepository, PriceListRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IPackSizeRepository, PackSizeRepository>();
+builder.Services.AddScoped<IRecipeLineRepository, RecipeLineRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
 builder.Services.AddScoped<IGradeService, GradeService>();
@@ -87,6 +88,7 @@ builder.Services.AddScoped<IValidator<CreateProductRequest>, CreateProductReques
 builder.Services.AddScoped<IValidator<UpdateProductRequest>, UpdateProductRequestValidator>();
 builder.Services.AddScoped<IValidator<CreatePackSizeRequest>, CreatePackSizeRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdatePackSizeRequest>, UpdatePackSizeRequestValidator>();
+builder.Services.AddScoped<IValidator<SetRecipeRequest>, SetRecipeRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();
 
