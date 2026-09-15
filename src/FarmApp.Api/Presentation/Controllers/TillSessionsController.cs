@@ -43,4 +43,21 @@ public class TillSessionsController(ITillSessionService service) : ApiController
     public async Task<ActionResult<List<TillSessionDto>>> GetAll(
         [FromQuery] int? locationId, [FromQuery] bool openOnly, CancellationToken ct)
         => await service.GetAllAsync(locationId, openOnly, ct);
+
+    /// <summary>Day close (doc 01 Module 4 / doc 02): compares the system's own card-sales total
+    /// against the card machine's settlement batch total and records the difference. Same
+    /// fallback-policy access as Open - closing out a till is a Cashier action too, not
+    /// Owner-only.</summary>
+    [HttpPost("{id:int}/close")]
+    public async Task<ActionResult<TillSessionDto>> Close(
+        int id, [FromBody] CloseTillSessionRequest request, IValidator<CloseTillSessionRequest> validator, CancellationToken ct)
+    {
+        var validation = await validator.ValidateAsync(request, ct);
+        if (!validation.IsValid) return ValidationProblem(validation);
+
+        var result = await service.CloseAsync(id, request.CardMachineBatchTotal, request.DifferenceNote, ct);
+        if (result.Error != ServiceError.None) return ErrorResult(result.Error, "till session");
+
+        return result.Value!;
+    }
 }

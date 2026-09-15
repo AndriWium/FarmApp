@@ -24,6 +24,14 @@ public enum ServiceError
     /// <summary>CreateSaleAsync rejected: a SalePayment used Method.Account but no CustomerId was
     /// supplied - an anonymous walk-in sale can't be put on account.</summary>
     AccountPaymentRequiresCustomer,
+
+    /// <summary>CloseAsync rejected: this TillSession's ClosedAt is already set - a till can only
+    /// be closed (day-closed) once (Phase 2b task brief).</summary>
+    TillSessionAlreadyClosed,
+
+    /// <summary>RefundSaleAsync rejected: this Sale's Status is already Refunded - a sale can only
+    /// be refunded once (Phase 2b task brief).</summary>
+    SaleAlreadyRefunded,
 }
 
 /// <summary>A service result carrying either a value (Error == None) or a business error.

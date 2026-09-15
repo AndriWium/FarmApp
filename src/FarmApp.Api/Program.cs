@@ -137,6 +137,7 @@ builder.Services.AddScoped<IValidator<CreatePurchaseRequest>, CreatePurchaseRequ
 builder.Services.AddScoped<IValidator<StartStockTakeRequest>, StartStockTakeRequestValidator>();
 builder.Services.AddScoped<IValidator<RecordCountsRequest>, RecordCountsRequestValidator>();
 builder.Services.AddScoped<IValidator<OpenTillSessionRequest>, OpenTillSessionRequestValidator>();
+builder.Services.AddScoped<IValidator<CloseTillSessionRequest>, CloseTillSessionRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateSaleRequest>, CreateSaleRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();

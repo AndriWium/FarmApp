@@ -44,6 +44,14 @@ public abstract class ApiControllerBase : ControllerBase
             statusCode: StatusCodes.Status409Conflict,
             title: "Account payment requires a customer",
             detail: "An Account payment must be linked to a customer - it can't be an anonymous walk-in sale."),
+        ServiceError.TillSessionAlreadyClosed => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Till session already closed",
+            detail: "This till session was already closed - it can only be day-closed once."),
+        ServiceError.SaleAlreadyRefunded => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Sale already refunded",
+            detail: "This sale was already refunded - it can only be refunded once."),
         _ => Problem(statusCode: StatusCodes.Status500InternalServerError),
     };
 

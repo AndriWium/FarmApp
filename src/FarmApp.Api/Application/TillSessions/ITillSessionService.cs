@@ -12,4 +12,13 @@ public interface ITillSessionService
     /// brief). openedByUserId is the authenticated caller's AppUserId, resolved by the controller
     /// from the JWT claims - never trust a client-supplied value for who opened a till.</summary>
     Task<ServiceResult<TillSessionDto>> OpenAsync(int locationId, int openedByUserId, CancellationToken ct);
+
+    /// <summary>Day close (doc 01 Module 4 / doc 02): rejects if the session doesn't exist or is
+    /// already closed. SystemCardTotal is computed server-side as SUM(SalePayment.Amount) across
+    /// every Complete Sale in this TillSession whose payment Method is Card (Refunded sales
+    /// excluded - ISalePaymentRepository.GetCardTotalForTillSessionAsync); Difference is
+    /// SystemCardTotal - cardMachineBatchTotal (positive = over, negative = short).
+    /// cardMachineBatchTotal/differenceNote are the only client-supplied values.</summary>
+    Task<ServiceResult<TillSessionDto>> CloseAsync(
+        int tillSessionId, decimal cardMachineBatchTotal, string? differenceNote, CancellationToken ct);
 }
