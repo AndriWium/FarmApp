@@ -23,6 +23,8 @@ public class FarmAppDbContext(DbContextOptions<FarmAppDbContext> options) : DbCo
     public DbSet<AccountingPeriod> AccountingPeriods => Set<AccountingPeriod>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<Location> Locations => Set<Location>();
+    public DbSet<StockBatch> StockBatches => Set<StockBatch>();
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
