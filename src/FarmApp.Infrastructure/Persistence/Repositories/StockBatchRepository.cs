@@ -24,4 +24,11 @@ public class StockBatchRepository(FarmAppDbContext db) : IStockBatchRepository
 
     public async Task AddAsync(StockBatch batch, CancellationToken ct)
         => await db.StockBatches.AddAsync(batch, ct);
+
+    public Task<List<TResult>> GetByPurchaseLineIdsAsync<TResult>(
+        IEnumerable<int> purchaseLineIds, Expression<Func<StockBatch, TResult>> selector, CancellationToken ct)
+        => db.StockBatches.AsNoTracking()
+            .Where(b => b.PurchaseLineId != null && purchaseLineIds.Contains(b.PurchaseLineId.Value))
+            .Select(selector)
+            .ToListAsync(ct);
 }

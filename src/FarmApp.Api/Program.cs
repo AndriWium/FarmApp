@@ -10,6 +10,7 @@ using FarmApp.Api.Application.Locations;
 using FarmApp.Api.Application.PackSizes;
 using FarmApp.Api.Application.PriceLists;
 using FarmApp.Api.Application.Prices;
+using FarmApp.Api.Application.ProducePurchases;
 using FarmApp.Api.Application.Products;
 using FarmApp.Api.Application.StockBatches;
 using FarmApp.Api.Application.StockMovements;
@@ -69,6 +70,8 @@ builder.Services.AddScoped<IPriceRepository, PriceRepository>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 builder.Services.AddScoped<IStockBatchRepository, StockBatchRepository>();
 builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
+builder.Services.AddScoped<IProducePurchaseRepository, ProducePurchaseRepository>();
+builder.Services.AddScoped<IProducePurchaseLineRepository, ProducePurchaseLineRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
 // Domain service — defined in FarmApp.Domain, wired up here per doc 11's dependency-inversion rule.
@@ -88,6 +91,7 @@ builder.Services.AddScoped<IPriceService, PriceService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<IStockBatchService, StockBatchService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
+builder.Services.AddScoped<IProducePurchaseService, ProducePurchaseService>();
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();
@@ -116,6 +120,7 @@ builder.Services.AddScoped<IValidator<UpdateLocationRequest>, UpdateLocationRequ
 builder.Services.AddScoped<IValidator<CreateStockBatchRequest>, CreateStockBatchRequestValidator>();
 builder.Services.AddScoped<IValidator<RecordStockMovementRequest>, RecordStockMovementRequestValidator>();
 builder.Services.AddScoped<IValidator<TransferStockRequest>, TransferStockRequestValidator>();
+builder.Services.AddScoped<IValidator<CreatePurchaseRequest>, CreatePurchaseRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();
 
