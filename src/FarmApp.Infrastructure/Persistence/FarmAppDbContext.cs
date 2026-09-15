@@ -9,6 +9,8 @@ public class FarmAppDbContext(DbContextOptions<FarmAppDbContext> options) : DbCo
     public DbSet<Grade> Grades => Set<Grade>();
     public DbSet<Block> Blocks => Set<Block>();
     public DbSet<Crop> Crops => Set<Crop>();
+    public DbSet<AppUser> Users => Set<AppUser>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {

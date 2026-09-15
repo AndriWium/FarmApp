@@ -1,6 +1,7 @@
 using FarmApp.Api.Application.Common;
 using FarmApp.Api.Application.Grades;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FarmApp.Api.Presentation.Controllers;
@@ -21,6 +22,7 @@ public class GradesController(IGradeService service) : ApiControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "CanManageMasterData")]
     public async Task<ActionResult<GradeDto>> Create(
         [FromBody] CreateGradeRequest request, IValidator<CreateGradeRequest> validator, CancellationToken ct)
     {
@@ -34,6 +36,7 @@ public class GradesController(IGradeService service) : ApiControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Policy = "CanManageMasterData")]
     public async Task<IActionResult> Update(
         int id, [FromBody] UpdateGradeRequest request, IValidator<UpdateGradeRequest> validator, CancellationToken ct)
     {
@@ -45,6 +48,7 @@ public class GradesController(IGradeService service) : ApiControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Policy = "CanManageMasterData")]
     public async Task<IActionResult> Deactivate(int id, CancellationToken ct)
     {
         var error = await service.DeactivateAsync(id, ct);
