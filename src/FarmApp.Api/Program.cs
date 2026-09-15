@@ -8,6 +8,7 @@ using FarmApp.Api.Application.Grades;
 using FarmApp.Api.Application.InputItems;
 using FarmApp.Api.Application.PackSizes;
 using FarmApp.Api.Application.PriceLists;
+using FarmApp.Api.Application.Prices;
 using FarmApp.Api.Application.Products;
 using FarmApp.Api.Application.Suppliers;
 using FarmApp.Api.Middleware;
@@ -60,6 +61,7 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IPackSizeRepository, PackSizeRepository>();
 builder.Services.AddScoped<IRecipeLineRepository, RecipeLineRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<IPriceRepository, PriceRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
 builder.Services.AddScoped<IGradeService, GradeService>();
@@ -72,6 +74,7 @@ builder.Services.AddScoped<IPriceListService, PriceListService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IPackSizeService, PackSizeService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IPriceService, PriceService>();
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();
@@ -94,6 +97,7 @@ builder.Services.AddScoped<IValidator<UpdatePackSizeRequest>, UpdatePackSizeRequ
 builder.Services.AddScoped<IValidator<SetRecipeRequest>, SetRecipeRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateCustomerRequest>, CreateCustomerRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateCustomerRequest>, UpdateCustomerRequestValidator>();
+builder.Services.AddScoped<IValidator<SetPriceRequest>, SetPriceRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();
 
