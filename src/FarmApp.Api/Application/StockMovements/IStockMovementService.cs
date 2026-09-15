@@ -12,4 +12,15 @@ public interface IStockMovementService
     Task<ServiceResult<List<StockMovementDto>>> TransferAsync(TransferStockRequest request, CancellationToken ct);
 
     Task<List<StockOnHandSummaryDto>> GetOnHandSummaryAsync(CancellationToken ct);
+
+    /// <summary>Records a single signed Adjustment movement against one already-known batch - no
+    /// FIFO allocation, unlike RecordAsync(Adjustment, ...): the caller (stock-take reconciliation)
+    /// already knows exactly which batch to adjust, so there's no product/grade to allocate
+    /// across. Positive increases the batch's on-hand (counted more than the system thought),
+    /// negative decreases it (counted less) - both directions, unlike the downward-only
+    /// RecordAsync(Adjustment, ...) path the six depletion endpoints still use. Deliberately does
+    /// NOT call SaveChangesAsync: the caller controls the transaction boundary (a stock take
+    /// commits every line's CountedQty/Variance update and every resulting movement in one
+    /// atomic save).</summary>
+    Task<StockMovementDto> RecordBatchAdjustmentAsync(int stockBatchId, decimal signedQty, string? reason, int? locationId, CancellationToken ct);
 }

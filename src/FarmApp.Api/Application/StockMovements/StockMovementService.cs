@@ -91,6 +91,25 @@ public class StockMovementService(
         return ServiceResult<List<StockMovementDto>>.Ok(movements.Select(ToDto).ToList());
     }
 
+    public async Task<StockMovementDto> RecordBatchAdjustmentAsync(
+        int stockBatchId, decimal signedQty, string? reason, int? locationId, CancellationToken ct)
+    {
+        var movement = new StockMovement
+        {
+            StockBatchId = stockBatchId,
+            Date = DateTime.UtcNow,
+            Type = StockMovementType.Adjustment,
+            Qty = signedQty, // signed by the caller - it already knows the direction (stock-take variance)
+            Reason = reason,
+            LocationId = locationId,
+        };
+        await movementRepo.AddRangeAsync([movement], ct);
+        // No SaveChangesAsync here by design - see the XML doc on IStockMovementService's
+        // RecordBatchAdjustmentAsync. The caller (StockTakeService) saves once for the whole
+        // reconciliation batch.
+        return ToDto(movement);
+    }
+
     public async Task<List<StockOnHandSummaryDto>> GetOnHandSummaryAsync(CancellationToken ct)
     {
         var rows = await movementRepo.GetOnHandSummaryAsync(ct);

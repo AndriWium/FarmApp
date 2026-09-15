@@ -27,6 +27,8 @@ public class FarmAppDbContext(DbContextOptions<FarmAppDbContext> options) : DbCo
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<ProducePurchase> ProducePurchases => Set<ProducePurchase>();
     public DbSet<ProducePurchaseLine> ProducePurchaseLines => Set<ProducePurchaseLine>();
+    public DbSet<StockTake> StockTakes => Set<StockTake>();
+    public DbSet<StockTakeLine> StockTakeLines => Set<StockTakeLine>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {

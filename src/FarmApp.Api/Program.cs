@@ -14,6 +14,7 @@ using FarmApp.Api.Application.ProducePurchases;
 using FarmApp.Api.Application.Products;
 using FarmApp.Api.Application.StockBatches;
 using FarmApp.Api.Application.StockMovements;
+using FarmApp.Api.Application.StockTakes;
 using FarmApp.Api.Application.Suppliers;
 using FarmApp.Api.Middleware;
 using FarmApp.Domain.Entities;
@@ -72,6 +73,8 @@ builder.Services.AddScoped<IStockBatchRepository, StockBatchRepository>();
 builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
 builder.Services.AddScoped<IProducePurchaseRepository, ProducePurchaseRepository>();
 builder.Services.AddScoped<IProducePurchaseLineRepository, ProducePurchaseLineRepository>();
+builder.Services.AddScoped<IStockTakeRepository, StockTakeRepository>();
+builder.Services.AddScoped<IStockTakeLineRepository, StockTakeLineRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
 // Domain service — defined in FarmApp.Domain, wired up here per doc 11's dependency-inversion rule.
@@ -92,6 +95,7 @@ builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<IStockBatchService, StockBatchService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 builder.Services.AddScoped<IProducePurchaseService, ProducePurchaseService>();
+builder.Services.AddScoped<IStockTakeService, StockTakeService>();
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();
@@ -121,6 +125,8 @@ builder.Services.AddScoped<IValidator<CreateStockBatchRequest>, CreateStockBatch
 builder.Services.AddScoped<IValidator<RecordStockMovementRequest>, RecordStockMovementRequestValidator>();
 builder.Services.AddScoped<IValidator<TransferStockRequest>, TransferStockRequestValidator>();
 builder.Services.AddScoped<IValidator<CreatePurchaseRequest>, CreatePurchaseRequestValidator>();
+builder.Services.AddScoped<IValidator<StartStockTakeRequest>, StartStockTakeRequestValidator>();
+builder.Services.AddScoped<IValidator<RecordCountsRequest>, RecordCountsRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();
 
