@@ -47,6 +47,7 @@ public class FarmAppDbContext(DbContextOptions<FarmAppDbContext> options) : DbCo
     public DbSet<ActivityType> ActivityTypes => Set<ActivityType>();
     public DbSet<Activity> Activities => Set<Activity>();
     public DbSet<ActivityInput> ActivityInputs => Set<ActivityInput>();
+    public DbSet<RainfallLog> RainfallLogs => Set<RainfallLog>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
