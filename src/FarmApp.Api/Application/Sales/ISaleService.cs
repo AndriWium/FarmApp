@@ -18,4 +18,16 @@ public interface ISaleService
     /// insufficient stock) rolls the whole transaction back - nothing about the sale survives
     /// partially.</summary>
     Task<ServiceResult<CreateSaleResult>> CreateSaleAsync(CreateSaleRequest request, CancellationToken ct);
+
+    /// <summary>Reverses a Complete sale (task brief): rejects if the sale doesn't exist or is
+    /// already Refunded. Inside one real EF Core transaction (same pattern as CreateSaleAsync),
+    /// credits back the exact StockBatch quantities the sale's checkout originally depleted (via
+    /// IStockMovementService.ReverseSaleDepletionAsync - no FIFO re-allocation, since exactly
+    /// which batches were touched is already known) and flips Sale.Status to Refunded. Does NOT
+    /// create, delete, or modify any SalePayment row - the original payment stays as historical
+    /// fact of what was charged; a Card refund's actual money movement happens on the physical
+    /// card machine, outside this system. Day-close and customer-balance calculations already
+    /// exclude Refunded sales (Sale.Status == Complete filters), which is what makes this correct
+    /// without reversing payment rows.</summary>
+    Task<ServiceResult<SaleDto>> RefundSaleAsync(int saleId, string? reason, CancellationToken ct);
 }

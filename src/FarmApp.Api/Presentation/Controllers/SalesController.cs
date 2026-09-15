@@ -47,4 +47,17 @@ public class SalesController(ISaleService service) : ApiControllerBase
     [HttpGet]
     public async Task<ActionResult<List<SaleDto>>> GetAll([FromQuery] int? tillSessionId, CancellationToken ct)
         => await service.GetAllAsync(tillSessionId, ct);
+
+    /// <summary>Reverses a Complete sale: credits back the exact stock batches/quantities it
+    /// depleted and flips Status to Refunded. No SalePayment rows are touched - the original
+    /// charge stays as historical fact; any actual refund of money happens on the card machine,
+    /// outside this system (task brief).</summary>
+    [HttpPost("{id:int}/refund")]
+    public async Task<ActionResult<SaleDto>> Refund(int id, [FromBody] RefundSaleRequest request, CancellationToken ct)
+    {
+        var result = await service.RefundSaleAsync(id, request.Reason, ct);
+        if (result.Error != ServiceError.None) return ErrorResult(result.Error, "sale");
+
+        return result.Value!;
+    }
 }

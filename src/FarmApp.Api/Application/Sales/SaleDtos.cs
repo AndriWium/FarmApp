@@ -28,3 +28,8 @@ public record SaleDto(
 /// ClientGuid creates and returns 201, a replayed one does nothing new and returns 200 with the
 /// same, already-existing sale) without the controller needing its own second lookup.</summary>
 public record CreateSaleResult(SaleDto Sale, bool WasReplay);
+
+/// <summary>Reason is optional context for why the sale was refunded - not a Sale column (doc
+/// 02's field list has none), so RefundSaleAsync folds it into Sale.Notes rather than dropping it
+/// (see DECISIONS.md).</summary>
+public record RefundSaleRequest(string? Reason);

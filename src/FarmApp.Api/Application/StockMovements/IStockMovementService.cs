@@ -33,4 +33,16 @@ public interface IStockMovementService
     /// sale (header + every line's movements + every payment, one atomic commit).</summary>
     Task<ServiceResult<SaleDepletionResult>> RecordSaleDepletionAsync(
         int productId, int? gradeId, decimal qtyBaseUnits, int saleId, int? locationId, CancellationToken ct);
+
+    /// <summary>The inverse of RecordSaleDepletionAsync, for Sales.SaleService.RefundSaleAsync:
+    /// finds every SaleOut movement this sale originally created (by RefTable "Sale"/RefId
+    /// saleId) and writes one offsetting Adjustment movement per batch, crediting back the exact
+    /// quantity that was taken - never re-running FIFO allocation, since which batches were
+    /// touched is already a matter of historical fact, not a new allocation decision. Reuses the
+    /// existing Adjustment movement type (same as StockTake's variance corrections) rather than a
+    /// new enum value - see DECISIONS.md. Deliberately does NOT call SaveChangesAsync - same
+    /// contract as RecordSaleDepletionAsync: the caller (SaleService.RefundSaleAsync) controls the
+    /// transaction boundary for the whole refund (movements + Sale.Status, one atomic
+    /// commit).</summary>
+    Task<List<StockMovementDto>> ReverseSaleDepletionAsync(int saleId, string? reason, CancellationToken ct);
 }

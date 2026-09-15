@@ -150,6 +150,32 @@ public class StockMovementService(
             new SaleDepletionResult(allocations, movements.Select(ToDto).ToList()));
     }
 
+    public async Task<List<StockMovementDto>> ReverseSaleDepletionAsync(int saleId, string? reason, CancellationToken ct)
+    {
+        var original = await movementRepo.GetBySaleDepletionAsync(saleId, ct);
+
+        var now = DateTime.UtcNow;
+        var reversalReason = reason is null ? $"Refund of Sale {saleId}" : $"Refund of Sale {saleId}: {reason}";
+        var reversals = original.Select(m => new StockMovement
+        {
+            StockBatchId = m.StockBatchId,
+            Date = now,
+            Type = StockMovementType.Adjustment,
+            Qty = -m.Qty, // original SaleOut Qty is negative (depletion); crediting back is the same magnitude, positive
+            RefTable = "Sale",
+            RefId = saleId,
+            Reason = reversalReason,
+            LocationId = m.LocationId,
+        }).ToList();
+
+        await movementRepo.AddRangeAsync(reversals, ct);
+        // No SaveChangesAsync here by design - see the XML doc on IStockMovementService's
+        // ReverseSaleDepletionAsync. SaleService.RefundSaleAsync saves and commits once for the
+        // whole refund (every reversal movement + Sale.Status) inside its own explicit transaction.
+
+        return reversals.Select(ToDto).ToList();
+    }
+
     public async Task<List<StockOnHandSummaryDto>> GetOnHandSummaryAsync(CancellationToken ct)
     {
         var rows = await movementRepo.GetOnHandSummaryAsync(ct);

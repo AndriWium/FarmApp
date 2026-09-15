@@ -199,6 +199,37 @@ public class SaleService(
         }
     }
 
+    public async Task<ServiceResult<SaleDto>> RefundSaleAsync(int saleId, string? reason, CancellationToken ct)
+    {
+        var sale = await saleRepo.GetByIdAsync(saleId, ct); // tracked entity - required to mutate + save
+        if (sale is null) return ServiceResult<SaleDto>.Fail(ServiceError.NotFound);
+        if (sale.Status == SaleStatus.Refunded) return ServiceResult<SaleDto>.Fail(ServiceError.SaleAlreadyRefunded);
+
+        // Same genuine-transaction pattern as CreateSaleAsync (task brief) - the stock reversal
+        // and the Sale.Status flip become visible together or not at all.
+        await uow.BeginTransactionAsync(ct);
+        try
+        {
+            await stockMovementService.ReverseSaleDepletionAsync(saleId, reason, ct);
+
+            sale.Status = SaleStatus.Refunded;
+            // Reason isn't a Sale column (doc 02's field list) - folded into Notes rather than
+            // dropped, so it stays visible without a schema change (see DECISIONS.md).
+            if (!string.IsNullOrWhiteSpace(reason))
+                sale.Notes = string.IsNullOrWhiteSpace(sale.Notes) ? $"Refund: {reason}" : $"{sale.Notes} | Refund: {reason}";
+
+            await uow.SaveChangesAsync(ct);
+            await uow.CommitTransactionAsync(ct);
+
+            return ServiceResult<SaleDto>.Ok(await ToDtoAsync(sale, ct));
+        }
+        catch
+        {
+            await uow.RollbackTransactionAsync(ct);
+            throw;
+        }
+    }
+
     private async Task<SaleDto> ToDtoAsync(Sale sale, CancellationToken ct)
     {
         var lines = await saleLineRepo.GetBySaleIdAsync(sale.SaleId, l => new SaleLineDto(

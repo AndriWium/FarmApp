@@ -19,4 +19,10 @@ public interface IStockMovementRepository
     /// <summary>Inserts one or more movement rows. The caller (a use-case service) is
     /// responsible for calling IUnitOfWork.SaveChangesAsync once for the whole operation.</summary>
     Task AddRangeAsync(IEnumerable<StockMovement> movements, CancellationToken ct);
+
+    /// <summary>Every SaleOut movement this sale's checkout originally created (RefTable
+    /// "Sale"/RefId saleId) - the exact batches/quantities StockMovementService.
+    /// ReverseSaleDepletionAsync credits back on refund, precisely, with no re-running of FIFO
+    /// allocation.</summary>
+    Task<IReadOnlyList<SaleDepletionMovement>> GetBySaleDepletionAsync(int saleId, CancellationToken ct);
 }

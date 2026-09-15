@@ -1,4 +1,5 @@
 using FarmApp.Domain.Entities;
+using FarmApp.Domain.Enums;
 using FarmApp.Domain.Repositories;
 using FarmApp.Domain.Services;
 using Microsoft.EntityFrameworkCore;
@@ -73,4 +74,10 @@ public class StockMovementRepository(FarmAppDbContext db) : IStockMovementReposi
 
     public async Task AddRangeAsync(IEnumerable<StockMovement> movements, CancellationToken ct)
         => await db.StockMovements.AddRangeAsync(movements, ct);
+
+    public async Task<IReadOnlyList<SaleDepletionMovement>> GetBySaleDepletionAsync(int saleId, CancellationToken ct)
+        => await db.StockMovements.AsNoTracking()
+            .Where(m => m.RefTable == "Sale" && m.RefId == saleId && m.Type == StockMovementType.SaleOut)
+            .Select(m => new SaleDepletionMovement(m.StockBatchId, m.Qty, m.LocationId))
+            .ToListAsync(ct);
 }
