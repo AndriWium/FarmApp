@@ -4,7 +4,8 @@ using FarmApp.Domain.Repositories;
 
 namespace FarmApp.Api.Application.InputItems;
 
-public class InputItemService(IInputItemRepository repo, IUnitOfWork uow) : IInputItemService
+public class InputItemService(
+    IInputItemRepository repo, IInputStockMovementRepository movementRepo, IUnitOfWork uow) : IInputItemService
 {
     public Task<List<InputItemDto>> GetAllAsync(bool includeInactive, CancellationToken ct)
         => repo.GetAllAsync(
@@ -63,6 +64,18 @@ public class InputItemService(IInputItemRepository repo, IUnitOfWork uow) : IInp
         inputItem.IsActive = false;   // soft delete: master data is never hard-deleted
         await uow.SaveChangesAsync(ct);
         return ServiceError.None;
+    }
+
+    public async Task<decimal?> GetOnHandAsync(int id, CancellationToken ct)
+    {
+        if (await repo.GetByIdAsync(id, ct) is null) return null;
+        return await movementRepo.GetOnHandAsync(id, ct);
+    }
+
+    public async Task<decimal?> GetWeightedAverageCostAsync(int id, CancellationToken ct)
+    {
+        if (await repo.GetByIdAsync(id, ct) is null) return null;
+        return await movementRepo.GetWeightedAverageCostAsync(id, ct);
     }
 
     private static InputItemDto ToDto(InputItem x) => new(

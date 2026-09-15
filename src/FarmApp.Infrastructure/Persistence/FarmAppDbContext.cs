@@ -39,6 +39,9 @@ public class FarmAppDbContext(DbContextOptions<FarmAppDbContext> options) : DbCo
     public DbSet<SaleLine> SaleLines => Set<SaleLine>();
     public DbSet<SalePayment> SalePayments => Set<SalePayment>();
     public DbSet<CustomerPayment> CustomerPayments => Set<CustomerPayment>();
+    public DbSet<InputPurchase> InputPurchases => Set<InputPurchase>();
+    public DbSet<InputPurchaseLine> InputPurchaseLines => Set<InputPurchaseLine>();
+    public DbSet<InputStockMovement> InputStockMovements => Set<InputStockMovement>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {

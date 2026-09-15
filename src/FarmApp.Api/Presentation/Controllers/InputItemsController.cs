@@ -54,4 +54,23 @@ public class InputItemsController(IInputItemService service) : ApiControllerBase
         var error = await service.DeactivateAsync(id, ct);
         return error == ServiceError.None ? NoContent() : ErrorResult(error, "input item");
     }
+
+    /// <summary>On-hand = SUM(Qty) over this item's InputStockMovement ledger (doc 02) - never a
+    /// stored column. No auth gating beyond the fallback policy: reading stock levels is not a
+    /// master-data-write concern (Phase 3a task brief).</summary>
+    [HttpGet("{id:int}/on-hand")]
+    public async Task<ActionResult<decimal>> GetOnHand(int id, CancellationToken ct)
+    {
+        var onHand = await service.GetOnHandAsync(id, ct);
+        return onHand is null ? NotFound() : onHand.Value;
+    }
+
+    /// <summary>Weighted-average cost across every PurchaseIn movement for this item - what
+    /// ActivityInput.UnitCost snapshots at the moment an input is consumed (Phase 3a task brief).</summary>
+    [HttpGet("{id:int}/weighted-average-cost")]
+    public async Task<ActionResult<decimal>> GetWeightedAverageCost(int id, CancellationToken ct)
+    {
+        var wac = await service.GetWeightedAverageCostAsync(id, ct);
+        return wac is null ? NotFound() : wac.Value;
+    }
 }
