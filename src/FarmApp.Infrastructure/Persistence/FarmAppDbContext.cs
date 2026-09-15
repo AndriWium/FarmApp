@@ -16,6 +16,7 @@ public class FarmAppDbContext(DbContextOptions<FarmAppDbContext> options) : DbCo
     public DbSet<Product> Products => Set<Product>();
     public DbSet<PackSize> PackSizes => Set<PackSize>();
     public DbSet<RecipeLine> RecipeLines => Set<RecipeLine>();
+    public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AccountingPeriod> AccountingPeriods => Set<AccountingPeriod>();
