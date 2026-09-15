@@ -6,6 +6,7 @@ using FarmApp.Api.Application.Cultivars;
 using FarmApp.Api.Application.Grades;
 using FarmApp.Api.Application.InputItems;
 using FarmApp.Api.Application.PriceLists;
+using FarmApp.Api.Application.Products;
 using FarmApp.Api.Application.Suppliers;
 using FarmApp.Api.Middleware;
 using FarmApp.Domain.Entities;
@@ -53,6 +54,7 @@ builder.Services.AddScoped<ICultivarRepository, CultivarRepository>();
 builder.Services.AddScoped<IInputItemRepository, InputItemRepository>();
 builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
 builder.Services.AddScoped<IPriceListRepository, PriceListRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
 builder.Services.AddScoped<IGradeService, GradeService>();
@@ -62,6 +64,7 @@ builder.Services.AddScoped<ICultivarService, CultivarService>();
 builder.Services.AddScoped<IInputItemService, InputItemService>();
 builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<IPriceListService, PriceListService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();
@@ -77,6 +80,8 @@ builder.Services.AddScoped<IValidator<CreateSupplierRequest>, CreateSupplierRequ
 builder.Services.AddScoped<IValidator<UpdateSupplierRequest>, UpdateSupplierRequestValidator>();
 builder.Services.AddScoped<IValidator<CreatePriceListRequest>, CreatePriceListRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdatePriceListRequest>, UpdatePriceListRequestValidator>();
+builder.Services.AddScoped<IValidator<CreateProductRequest>, CreateProductRequestValidator>();
+builder.Services.AddScoped<IValidator<UpdateProductRequest>, UpdateProductRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();
 
