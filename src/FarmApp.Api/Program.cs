@@ -7,6 +7,7 @@ using FarmApp.Api.Middleware;
 using FarmApp.Domain.Entities;
 using FarmApp.Domain.Repositories;
 using FarmApp.Infrastructure.Persistence;
+using FarmApp.Infrastructure.Persistence.Interceptors;
 using FarmApp.Infrastructure.Persistence.Repositories;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -29,8 +30,17 @@ Log.Logger = new LoggerConfiguration()
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
 
-builder.Services.AddDbContext<FarmAppDbContext>(o =>
-    o.UseSqlServer(builder.Configuration.GetConnectionString("FarmApp")));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AuditInterceptor>();
+
+builder.Services.AddDbContext<FarmAppDbContext>((sp, o) =>
+{
+    o.UseSqlServer(builder.Configuration.GetConnectionString("FarmApp"));
+    // PeriodLockInterceptor has no dependencies (inert until an IPeriodLocked entity exists —
+    // doc 10 §1); AuditInterceptor needs the scoped IHttpContextAccessor, so it's resolved from
+    // the request's own service provider rather than newed up directly.
+    o.AddInterceptors(new PeriodLockInterceptor(), sp.GetRequiredService<AuditInterceptor>());
+});
 
 builder.Services.AddScoped<IGradeRepository, GradeRepository>();
 builder.Services.AddScoped<IBlockRepository, BlockRepository>();

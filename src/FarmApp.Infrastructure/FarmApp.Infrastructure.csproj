@@ -4,6 +4,13 @@
     <ProjectReference Include="..\FarmApp.Domain\FarmApp.Domain.csproj" />
   </ItemGroup>
 
+  <!-- AuditInterceptor needs IHttpContextAccessor (AI Guide/10-go-live-controls.md) — reference
+       the shared ASP.NET Core framework rather than the old netstandard2.0-era
+       Microsoft.AspNetCore.Http.Abstractions NuGet package, which predates .NET Core 3 hosting. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
