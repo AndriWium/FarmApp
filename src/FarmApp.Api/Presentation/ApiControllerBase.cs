@@ -28,14 +28,32 @@ public abstract class ApiControllerBase : ControllerBase
             statusCode: StatusCodes.Status409Conflict,
             title: "Insufficient stock",
             detail: $"Not enough {entityName} on hand to cover the requested quantity."),
+        ServiceError.TillSessionAlreadyOpen => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Till session already open",
+            detail: "A till session is already open for this location - close it before opening another."),
+        ServiceError.TillSessionClosed => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Till session closed",
+            detail: "This till session is closed; sales cannot be recorded against it."),
+        ServiceError.PaymentMismatch => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Payment mismatch",
+            detail: "Payments do not cover the sale total."),
+        ServiceError.AccountPaymentRequiresCustomer => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Account payment requires a customer",
+            detail: "An Account payment must be linked to a customer - it can't be an anonymous walk-in sale."),
         _ => Problem(statusCode: StatusCodes.Status500InternalServerError),
     };
 
     /// <summary>Same mapping as ErrorResult, with a precise message for InsufficientStock (the
-    /// FIFO service reports exactly how much was requested vs. available).</summary>
+    /// FIFO service reports exactly how much was requested vs. available) and PaymentMismatch
+    /// (the exact amounts involved).</summary>
     protected ActionResult ErrorResult(ServiceError error, string entityName, string detail) => error switch
     {
         ServiceError.InsufficientStock => Problem(statusCode: StatusCodes.Status409Conflict, title: "Insufficient stock", detail: detail),
+        ServiceError.PaymentMismatch => Problem(statusCode: StatusCodes.Status409Conflict, title: "Payment mismatch", detail: detail),
         _ => ErrorResult(error, entityName),
     };
 }

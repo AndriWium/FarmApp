@@ -16,6 +16,8 @@ using FarmApp.Api.Application.StockBatches;
 using FarmApp.Api.Application.StockMovements;
 using FarmApp.Api.Application.StockTakes;
 using FarmApp.Api.Application.Suppliers;
+using FarmApp.Api.Application.Sales;
+using FarmApp.Api.Application.TillSessions;
 using FarmApp.Api.Middleware;
 using FarmApp.Domain.Entities;
 using FarmApp.Domain.Repositories;
@@ -75,10 +77,15 @@ builder.Services.AddScoped<IProducePurchaseRepository, ProducePurchaseRepository
 builder.Services.AddScoped<IProducePurchaseLineRepository, ProducePurchaseLineRepository>();
 builder.Services.AddScoped<IStockTakeRepository, StockTakeRepository>();
 builder.Services.AddScoped<IStockTakeLineRepository, StockTakeLineRepository>();
+builder.Services.AddScoped<ITillSessionRepository, TillSessionRepository>();
+builder.Services.AddScoped<ISaleRepository, SaleRepository>();
+builder.Services.AddScoped<ISaleLineRepository, SaleLineRepository>();
+builder.Services.AddScoped<ISalePaymentRepository, SalePaymentRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
-// Domain service — defined in FarmApp.Domain, wired up here per doc 11's dependency-inversion rule.
+// Domain services — defined in FarmApp.Domain, wired up here per doc 11's dependency-inversion rule.
 builder.Services.AddScoped<IStockAllocationService, StockAllocationService>();
+builder.Services.AddScoped<ISaleLineCalculator, SaleLineCalculator>();
 
 builder.Services.AddScoped<IGradeService, GradeService>();
 builder.Services.AddScoped<IBlockService, BlockService>();
@@ -96,6 +103,8 @@ builder.Services.AddScoped<IStockBatchService, StockBatchService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 builder.Services.AddScoped<IProducePurchaseService, ProducePurchaseService>();
 builder.Services.AddScoped<IStockTakeService, StockTakeService>();
+builder.Services.AddScoped<ITillSessionService, TillSessionService>();
+builder.Services.AddScoped<ISaleService, SaleService>();
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();
@@ -127,6 +136,8 @@ builder.Services.AddScoped<IValidator<TransferStockRequest>, TransferStockReques
 builder.Services.AddScoped<IValidator<CreatePurchaseRequest>, CreatePurchaseRequestValidator>();
 builder.Services.AddScoped<IValidator<StartStockTakeRequest>, StartStockTakeRequestValidator>();
 builder.Services.AddScoped<IValidator<RecordCountsRequest>, RecordCountsRequestValidator>();
+builder.Services.AddScoped<IValidator<OpenTillSessionRequest>, OpenTillSessionRequestValidator>();
+builder.Services.AddScoped<IValidator<CreateSaleRequest>, CreateSaleRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();
 

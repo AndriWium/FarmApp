@@ -8,6 +8,22 @@ public enum ServiceError
     NotFound,
     DuplicateName,
     InsufficientStock,
+
+    /// <summary>OpenAsync rejected: this location already has an open TillSession - one open
+    /// session per location at a time (task brief).</summary>
+    TillSessionAlreadyOpen,
+
+    /// <summary>CreateSaleAsync rejected: the referenced TillSession exists but ClosedAt is
+    /// already set - a sale can't happen against a closed till.</summary>
+    TillSessionClosed,
+
+    /// <summary>CreateSaleAsync rejected: Σ SalePayment.Amount didn't equal the sale's computed
+    /// total (Σ Qty x UnitPrice - DiscountAmount) - no partial/short payments this phase.</summary>
+    PaymentMismatch,
+
+    /// <summary>CreateSaleAsync rejected: a SalePayment used Method.Account but no CustomerId was
+    /// supplied - an anonymous walk-in sale can't be put on account.</summary>
+    AccountPaymentRequiresCustomer,
 }
 
 /// <summary>A service result carrying either a value (Error == None) or a business error.
