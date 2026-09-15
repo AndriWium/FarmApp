@@ -366,78 +366,138 @@ Every one of these is optional and composes with the rest — a repository metho
 
 When a real paged list shows up (Phase 1's Stock screen is the first candidate), add a method shaped like this to that entity's repository interface and implementation — same idea as `GetAllAsync<TResult>` above, with `Where`/`OrderBy`/`Skip`/`Take` layered in.
 
-### 4.6 — Service layer: take logic out of the controller
+### 4.6 — Service layer: an explicit Application boundary within Api
 
-*Concept:* a controller's only job is translating HTTP ↔ a method call. Right now `GetAll`/`Create`/etc. build entities, map to DTOs, and orchestrate the repository + `IUnitOfWork` directly inside the controller — that's business logic living in the wrong place. A **service** sits between controller and repository and owns that orchestration; the controller shrinks to "call the service, translate the result to an HTTP status."
+*Concept:* a controller's only job is translating HTTP ↔ a method call. Right now `GetAll`/`Create`/etc. build entities, map to DTOs, and orchestrate the repository + `IUnitOfWork` directly inside the controller — that's business logic living in the wrong place. A **service** sits between controller and repository and owns that orchestration.
 
-**VS:** in the `Grades` folder (you'll create this folder for real in step 5.1 — if you're reading ahead, make it now: right-click **FarmApp.Api** → Add → New Folder → `Features` → New Folder → `Grades`), Add → Class → `IGradeService.cs`:
+Rather than mixing services in with controllers, Api splits into two folders — this is [doc 11](<../AI Guide/11-coding-standards.md>)'s convention, a lightweight version of "Clean Architecture" that stays inside one project instead of adding a fourth:
+- **`Application/<Feature>/`** — services (interface + implementation), DTOs, validators. Pure C# — nothing here ever mentions `ActionResult`, `[HttpGet]`, or any ASP.NET Core MVC type. You could unit-test everything in this folder without a web host running.
+- **`Presentation/Controllers/`** — controllers only. Their whole job is "read the HTTP request, call one Application method, translate the result to a status code."
+- **`Application/Common/`** — small types shared across every feature's Application code: a generic outcome wrapper (`ServiceResult<T>`/`ServiceError`, below) and the `.RequiredName()` validator extension (step 5.2).
+
+No compiler enforces the one-way rule (`Presentation` may reference `Application`, never the reverse) — it's a discipline, not an assembly boundary. If you ever catch yourself wanting to `return NotFound()` from inside a service, that's the signal the logic belongs in the controller instead.
+
+**VS:** right-click **FarmApp.Api** → Add → New Folder → `Application`. Right-click `Application` → Add → New Folder → `Common`. Right-click `Common` → Add → Class → `ServiceResults.cs`:
 ```csharp
-namespace FarmApp.Api.Features.Grades;
+namespace FarmApp.Api.Application.Common;
+
+/// <summary>Business-rule outcomes a service can report without throwing.
+/// The Presentation layer maps these to HTTP statuses in one place (ApiControllerBase).</summary>
+public enum ServiceError
+{
+    None,
+    NotFound,
+    DuplicateName,
+}
+
+/// <summary>A service result carrying either a value (Error == None) or a business error.</summary>
+public record ServiceResult<T>(T? Value, ServiceError Error)
+{
+    public static ServiceResult<T> Ok(T value) => new(value, ServiceError.None);
+    public static ServiceResult<T> Fail(ServiceError error) => new(default, error);
+}
+```
+*Why this exists:* a service needs to report outcomes like "that name is already taken" without throwing an exception (exceptions are for the unexpected, not for routine business rules) and without knowing anything about HTTP status codes (that's `Presentation`'s job). `ServiceResult<T>`/`ServiceError` is the shared vocabulary both sides agree on.
+
+Now the feature folder. Right-click **FarmApp.Api → Application** → Add → New Folder → `Grades`. Add → Class → `IGradeService.cs`:
+```csharp
+using FarmApp.Api.Application.Common;
+
+namespace FarmApp.Api.Application.Grades;
 
 public interface IGradeService
 {
-    Task<List<GradeDto>> GetAllAsync(CancellationToken ct);
+    Task<List<GradeDto>> GetAllAsync(bool includeInactive, CancellationToken ct);
     Task<GradeDto?> GetByIdAsync(int id, CancellationToken ct);
-    Task<GradeDto> CreateAsync(CreateGradeRequest request, CancellationToken ct);
-    Task<bool> UpdateAsync(int id, CreateGradeRequest request, CancellationToken ct);
-    Task<bool> DeleteAsync(int id, CancellationToken ct);
+    Task<ServiceResult<GradeDto>> CreateAsync(CreateGradeRequest request, CancellationToken ct);
+    Task<ServiceError> UpdateAsync(int id, UpdateGradeRequest request, CancellationToken ct);
+    Task<ServiceError> DeactivateAsync(int id, CancellationToken ct);
 }
 ```
-(This references `GradeDto`/`CreateGradeRequest`, which you create in step 5.1 — build this file right after those two, in whichever order feels natural.)
+(This references `GradeDto`/`CreateGradeRequest`/`UpdateGradeRequest`, which you create in step 5.1 — build this file right after those, in whichever order feels natural. Note `DeactivateAsync`, not `DeleteAsync` — master data is never hard-deleted, see the callout in 4.7.)
 
 Add → Class → `GradeService.cs`:
 ```csharp
+using FarmApp.Api.Application.Common;
 using FarmApp.Domain.Entities;
 using FarmApp.Domain.Repositories;
 
-namespace FarmApp.Api.Features.Grades;
+namespace FarmApp.Api.Application.Grades;
 
 public class GradeService(IGradeRepository repo, IUnitOfWork uow) : IGradeService
 {
-    public Task<List<GradeDto>> GetAllAsync(CancellationToken ct)
-        => repo.GetAllAsync(g => new GradeDto(g.GradeId, g.Name), ct);
+    public Task<List<GradeDto>> GetAllAsync(bool includeInactive, CancellationToken ct)
+        => repo.GetAllAsync(g => new GradeDto(g.GradeId, g.Name, g.IsActive), includeInactive, ct);
 
     public Task<GradeDto?> GetByIdAsync(int id, CancellationToken ct)
-        => repo.GetByIdAsync(id, g => new GradeDto(g.GradeId, g.Name), ct);
+        => repo.GetByIdAsync(id, g => new GradeDto(g.GradeId, g.Name, g.IsActive), ct);
 
-    public async Task<GradeDto> CreateAsync(CreateGradeRequest request, CancellationToken ct)
+    public async Task<ServiceResult<GradeDto>> CreateAsync(CreateGradeRequest request, CancellationToken ct)
     {
+        if (await repo.ExistsByNameAsync(request.Name, excludeId: null, ct))
+            return ServiceResult<GradeDto>.Fail(ServiceError.DuplicateName);
+
         var grade = new Grade { Name = request.Name };
         await repo.AddAsync(grade, ct);
         await uow.SaveChangesAsync(ct);
-        return new GradeDto(grade.GradeId, grade.Name);
+        return ServiceResult<GradeDto>.Ok(new GradeDto(grade.GradeId, grade.Name, grade.IsActive));
     }
 
-    public async Task<bool> UpdateAsync(int id, CreateGradeRequest request, CancellationToken ct)
+    public async Task<ServiceError> UpdateAsync(int id, UpdateGradeRequest request, CancellationToken ct)
     {
         var grade = await repo.GetByIdAsync(id, ct);   // tracked entity — required to mutate + save
-        if (grade is null) return false;
+        if (grade is null) return ServiceError.NotFound;
+
+        if (await repo.ExistsByNameAsync(request.Name, excludeId: id, ct))
+            return ServiceError.DuplicateName;
 
         grade.Name = request.Name;
+        grade.IsActive = request.IsActive;
         await uow.SaveChangesAsync(ct);
-        return true;
+        return ServiceError.None;
     }
 
-    public async Task<bool> DeleteAsync(int id, CancellationToken ct)
+    public async Task<ServiceError> DeactivateAsync(int id, CancellationToken ct)
     {
-        var grade = await repo.GetByIdAsync(id, ct);   // tracked entity — required to remove
-        if (grade is null) return false;
+        var grade = await repo.GetByIdAsync(id, ct);
+        if (grade is null) return ServiceError.NotFound;
 
-        repo.Remove(grade);
+        grade.IsActive = false;   // soft delete: master data is never hard-deleted
         await uow.SaveChangesAsync(ct);
-        return true;
+        return ServiceError.None;
     }
 }
 ```
 
-Notice `GetAllAsync`/`GetByIdAsync` call the **generic projected** repository methods from step 4.2 directly, handing in the DTO-mapping expression — the SQL projection and the DTO shape are decided right here, in one place, instead of "fetch everything, then map in the controller."
+Notice `GetAllAsync`/`GetByIdAsync` call the **generic projected** repository methods from step 4.2 directly, handing in the DTO-mapping expression — the SQL projection and the DTO shape are decided right here, in one place, instead of "fetch everything, then map in the controller." `ExistsByNameAsync` (add this to `IGradeRepository`/`GradeRepository` alongside the methods from step 4.1/4.2 — same pattern, `db.Grades.AsNoTracking().AnyAsync(x => x.Name == name && (excludeId == null || x.GradeId != excludeId), ct)`) is what turns a duplicate name into a clean `DuplicateName` result instead of an unhandled `DbUpdateException` from the unique index.
 
 Register it in `Program.cs`, next to the repository registration:
 ```csharp
 builder.Services.AddScoped<IGradeService, GradeService>();
 ```
 
-✅ **Checkpoint:** builds (once `GradeDto`/`CreateGradeRequest` exist from step 5.1 — if you're doing this before 5.1, that's expected to not compile yet; come back to this checkpoint after 5.1). You can explain: repository = "how do I talk to the database", service = "what does this feature actually do", controller = "translate HTTP to a service call and back". This is the exact shape Block and Crop will repeat in step 5.
+✅ **Checkpoint:** builds (once `GradeDto`/`CreateGradeRequest`/`UpdateGradeRequest` exist from step 5.1 — if you're doing this before 5.1, that's expected to not compile yet; come back to this checkpoint after 5.1). You can explain: repository = "how do I talk to the database", service (`Application`) = "what does this feature actually do", controller (`Presentation`) = "translate HTTP to a service call and back". This is the exact shape Block and Crop will repeat in step 5.
+
+### 4.7 — Master data is never hard-deleted
+
+*Concept:* the moment another table references `GradeId` (Phase 1's `StockBatch` will), a hard `DELETE` on a Grade in use throws a foreign-key violation — an ugly 500 for something that should be a normal, safe action. The fix: master-data "delete" **deactivates** instead. `Grade`/`Block`/`Crop` all carry `IsActive` (default `true`); list endpoints filter to active-only unless the caller asks for everything.
+
+Add this to `Grade.cs` (and `Crop.cs`; `Block.cs` already has it):
+```csharp
+public bool IsActive { get; set; } = true;
+```
+And to its configuration class — `b.Property(x => x.IsActive).HasDefaultValue(true);` — so a migration adding the column backfills existing rows with `true`, not SQL's own default of `false`.
+
+The repository's `GetAllAsync<TResult>` takes an `includeInactive` flag:
+```csharp
+public Task<List<TResult>> GetAllAsync<TResult>(Expression<Func<Grade, TResult>> selector, bool includeInactive, CancellationToken ct)
+    => db.Grades.AsNoTracking()
+        .Where(x => includeInactive || x.IsActive)
+        .OrderBy(x => x.Name)
+        .Select(selector)
+        .ToListAsync(ct);
+```
+and the controller exposes it as a query parameter: `GetAll([FromQuery] bool includeInactive, CancellationToken ct)`.
 
 ## Step 5 — First controller: Grades CRUD (M3)
 
@@ -445,17 +505,19 @@ builder.Services.AddScoped<IGradeService, GradeService>();
 
 ### 5.1 — DTOs
 
-**VS:** right-click **FarmApp.Api** → Add → New Folder → `Features`. Right-click `Features` → Add → New Folder → `Grades`. Right-click `Grades` → Add → Class → `GradeDtos.cs`.
+**VS:** right-click **Application\Grades** (created in step 4.6) → Add → Class → `GradeDtos.cs`.
 
 ```csharp
-namespace FarmApp.Api.Features.Grades;
+namespace FarmApp.Api.Application.Grades;
 
-public record GradeDto(int GradeId, string Name);
+public record GradeDto(int GradeId, string Name, bool IsActive);
 
 public record CreateGradeRequest(string Name);
+
+public record UpdateGradeRequest(string Name, bool IsActive);
 ```
 
-Now go build `IGradeService`/`GradeService` from step 4.6 if you haven't yet — they need these two records to exist.
+Now go build `IGradeService`/`GradeService` from step 4.6 if you haven't yet — they need these records to exist. `CreateGradeRequest` and `UpdateGradeRequest` are separate types even though Grade's fields are identical between the two, because `IsActive` only makes sense once a row already exists — a new Grade is always created active. (Block's two request records diverge more visibly: `CreateBlockRequest` has `Name`/`AreaHectare`/`Note`; `UpdateBlockRequest` adds `IsActive` on top.)
 
 > **POPI standing rule, worth locking in now even though Grade doesn't trigger it:** once real personal information shows up (`Customer`, `Supplier`, `AppUser` — [doc 13](<../AI Guide/13-auth-and-logging.md>)), it travels in the **request body only** — never as a route or query-string parameter. A URL like `GET /customers?phone=0821234567` ends up in server access logs and browser history; a POST body doesn't. Route parameters stay limited to opaque numeric IDs (`{id:int}`), which aren't personal information themselves. `[FromBody]` on every write DTO (step 5.3) makes this explicit rather than relying on ASP.NET Core's default inference.
 
@@ -463,11 +525,11 @@ Now go build `IGradeService`/`GradeService` from step 4.6 if you haven't yet —
 
 **VS:** right-click **FarmApp.Api** → Manage NuGet Packages → install `FluentValidation`.
 
-First, a tiny **shared abstraction** so "required, max length N" isn't retyped in every validator — right-click **FarmApp.Api** → Add → New Folder → `Shared`. Add → Class → `ValidationExtensions.cs`:
+The shared rule extension from 4.6's `Application/Common` folder — Add → Class → `ValidationExtensions.cs`:
 ```csharp
 using FluentValidation;
 
-namespace FarmApp.Api.Shared;
+namespace FarmApp.Api.Application.Common;
 
 public static class ValidationExtensions
 {
@@ -478,13 +540,13 @@ public static class ValidationExtensions
 }
 ```
 
-Right-click the `Grades` folder → Add → Class → `CreateGradeRequestValidator.cs`.
+Right-click **Application\Grades** → Add → Class → `GradeRequestValidators.cs` (one file, two small validators — Create and Update):
 
 ```csharp
-using FarmApp.Api.Shared;
+using FarmApp.Api.Application.Common;
 using FluentValidation;
 
-namespace FarmApp.Api.Features.Grades;
+namespace FarmApp.Api.Application.Grades;
 
 public class CreateGradeRequestValidator : AbstractValidator<CreateGradeRequest>
 {
@@ -493,25 +555,36 @@ public class CreateGradeRequestValidator : AbstractValidator<CreateGradeRequest>
         RuleFor(x => x.Name).RequiredName();
     }
 }
+
+public class UpdateGradeRequestValidator : AbstractValidator<UpdateGradeRequest>
+{
+    public UpdateGradeRequestValidator()
+    {
+        RuleFor(x => x.Name).RequiredName();
+    }
+}
 ```
 
-Register it in `Program.cs` (one more line, anywhere before `builder.Build()`):
+Register both in `Program.cs` (anywhere before `builder.Build()`):
 ```csharp
 using FluentValidation;
-using FarmApp.Api.Features.Grades;
+using FarmApp.Api.Application.Grades;
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
+builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();
 ```
 
-Second shared piece: every controller below needs to turn a failed `ValidationResult` into the same 400 response. Right-click `Shared` → Add → Class → `ApiControllerBase.cs`:
+Second shared piece — this one is **Presentation**, not Application, because it deals entirely in HTTP concepts (`ActionResult`, status codes). Right-click **FarmApp.Api** → Add → New Folder → `Presentation`. Add → Class → `ApiControllerBase.cs`:
 ```csharp
+using FarmApp.Api.Application.Common;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FarmApp.Api.Shared;
+namespace FarmApp.Api.Presentation;
 
-/// <summary>Base for feature controllers — turns a FluentValidation result into the same
-/// ProblemDetails 400 response every controller used to build by hand.</summary>
+/// <summary>Base for feature controllers — shared translations from validation
+/// and service outcomes into consistent HTTP responses. Presentation-layer only:
+/// it knows about ActionResult/HTTP status codes, nothing about how a feature works.</summary>
 public abstract class ApiControllerBase : ControllerBase
 {
     protected ActionResult ValidationProblem(ValidationResult result)
@@ -520,28 +593,40 @@ public abstract class ApiControllerBase : ControllerBase
             ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
         return ValidationProblem(ModelState);
     }
+
+    /// <summary>Maps a non-None ServiceError to its HTTP response. Call only when Error != None.</summary>
+    protected ActionResult ErrorResult(ServiceError error, string entityName) => error switch
+    {
+        ServiceError.NotFound => NotFound(),
+        ServiceError.DuplicateName => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Duplicate name",
+            detail: $"A {entityName} with this name already exists (it may be deactivated)."),
+        _ => Problem(statusCode: StatusCodes.Status500InternalServerError),
+    };
 }
 ```
-Controllers inherit `ApiControllerBase` instead of `ControllerBase` from here on, and every write action shrinks its validation-handling block from four lines to one: `if (!result.IsValid) return ValidationProblem(result);`.
+Controllers inherit `ApiControllerBase` instead of `ControllerBase` from here on. `ValidationProblem(result)` shrinks a validation-error block from four lines to one; `ErrorResult(error, "grade")` does the same for a failed service call — one line translates `ServiceError` into the right HTTP status, instead of an `if`/`switch` repeated in every controller.
 
 ### 5.3 — The controller (thin — the service from step 4.6 does the work)
 
-Right-click the `Grades` folder → Add → Class → `GradesController.cs`.
+**VS:** right-click **Presentation** → Add → New Folder → `Controllers`. Add → Class → `GradesController.cs`.
 
 ```csharp
+using FarmApp.Api.Application.Common;
+using FarmApp.Api.Application.Grades;
 using FluentValidation;
-using FarmApp.Api.Shared;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FarmApp.Api.Features.Grades;
+namespace FarmApp.Api.Presentation.Controllers;
 
 [ApiController]
 [Route("api/v1/[controller]")]
 public class GradesController(IGradeService service) : ApiControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<List<GradeDto>>> GetAll(CancellationToken ct)
-        => await service.GetAllAsync(ct);
+    public async Task<ActionResult<List<GradeDto>>> GetAll([FromQuery] bool includeInactive, CancellationToken ct)
+        => await service.GetAllAsync(includeInactive, ct);
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<GradeDto>> GetById(int id, CancellationToken ct)
@@ -554,30 +639,36 @@ public class GradesController(IGradeService service) : ApiControllerBase
     public async Task<ActionResult<GradeDto>> Create(
         [FromBody] CreateGradeRequest request, IValidator<CreateGradeRequest> validator, CancellationToken ct)
     {
-        var result = await validator.ValidateAsync(request, ct);
-        if (!result.IsValid) return ValidationProblem(result);
+        var validation = await validator.ValidateAsync(request, ct);
+        if (!validation.IsValid) return ValidationProblem(validation);
 
-        var dto = await service.CreateAsync(request, ct);
-        return CreatedAtAction(nameof(GetById), new { id = dto.GradeId }, dto);
+        var result = await service.CreateAsync(request, ct);
+        if (result.Error != ServiceError.None) return ErrorResult(result.Error, "grade");
+
+        return CreatedAtAction(nameof(GetById), new { id = result.Value!.GradeId }, result.Value);
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(
-        int id, [FromBody] CreateGradeRequest request, IValidator<CreateGradeRequest> validator, CancellationToken ct)
+        int id, [FromBody] UpdateGradeRequest request, IValidator<UpdateGradeRequest> validator, CancellationToken ct)
     {
-        var result = await validator.ValidateAsync(request, ct);
-        if (!result.IsValid) return ValidationProblem(result);
+        var validation = await validator.ValidateAsync(request, ct);
+        if (!validation.IsValid) return ValidationProblem(validation);
 
-        return await service.UpdateAsync(id, request, ct) ? NoContent() : NotFound();
+        var error = await service.UpdateAsync(id, request, ct);
+        return error == ServiceError.None ? NoContent() : ErrorResult(error, "grade");
     }
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken ct)
-        => await service.DeleteAsync(id, ct) ? NoContent() : NotFound();
+    public async Task<IActionResult> Deactivate(int id, CancellationToken ct)
+    {
+        var error = await service.DeactivateAsync(id, ct);
+        return error == ServiceError.None ? NoContent() : ErrorResult(error, "grade");
+    }
 }
 ```
 
-Compare this to step 4.6's `GradeService` — every line here is either "read a value off the HTTP request" or "translate a result into an HTTP response." No entity construction, no DTO mapping, no repository/`IUnitOfWork` calls. That's the whole point of the split.
+Compare this to step 4.6's `GradeService` — every line here is either "read a value off the HTTP request" or "translate a result into an HTTP response." No entity construction, no DTO mapping, no repository/`IUnitOfWork` calls, and it never even mentions what a "duplicate name" means — it just asks `ErrorResult` to translate whatever `ServiceError` came back. That's the whole point of the `Application`/`Presentation` split: swap `GradeService`'s internals completely and this file never changes.
 
 ### 5.4 — Run it and click around
 
@@ -733,7 +824,7 @@ dotnet user-secrets set "Jwt:SigningKey" "a-random-string-of-at-least-32-charact
 dotnet user-secrets set "Jwt:Issuer" "FarmApp" --project src\FarmApp.Api
 ```
 
-**VS:** right-click `Features` (in **FarmApp.Api**) → Add → New Folder → `Auth`. Add → Class → `TokenService.cs`:
+**VS:** right-click `Application` (in **FarmApp.Api**) → Add → New Folder → `Auth`. Add → Class → `TokenService.cs`. This is pure token-generation logic — no HTTP types anywhere in it — so it's `Application`, not `Presentation`:
 ```csharp
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -741,7 +832,7 @@ using System.Text;
 using FarmApp.Domain.Entities;
 using Microsoft.IdentityModel.Tokens;
 
-namespace FarmApp.Api.Features.Auth;
+namespace FarmApp.Api.Application.Auth;
 
 public class TokenService(IConfiguration config)
 {
@@ -773,17 +864,18 @@ public class TokenService(IConfiguration config)
 }
 ```
 
-Add → Class (still in `Features\Auth\`) → `AuthDtos.cs`:
+Add → Class (still in `Application\Auth\`) → `AuthDtos.cs`:
 ```csharp
-namespace FarmApp.Api.Features.Auth;
+namespace FarmApp.Api.Application.Auth;
 
 public record LoginRequest(string UserName, string Password);
 public record RefreshRequest(string RefreshToken);
 public record TokenResponse(string AccessToken, string RefreshToken);
 ```
 
-Add → Class → `AuthController.cs`:
+Now the controller — this one **is** `Presentation`, since it's all HTTP: **VS:** right-click `Presentation\Controllers` → Add → Class → `AuthController.cs`:
 ```csharp
+using FarmApp.Api.Application.Auth;
 using FarmApp.Domain.Entities;
 using FarmApp.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -791,7 +883,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace FarmApp.Api.Features.Auth;
+namespace FarmApp.Api.Presentation.Controllers;
 
 [ApiController]
 [Route("api/v1/auth")]
@@ -852,7 +944,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using FarmApp.Api.Features.Auth;
+using FarmApp.Api.Application.Auth;
 
 builder.Services.AddScoped<TokenService>();
 
@@ -880,7 +972,7 @@ app.UseAuthentication();
 ```
 (`UseAuthentication` must run before `UseAuthorization` — it decides *who you are*; authorization then decides *what you're allowed to do*.)
 
-Finally, put `[Authorize(Policy = "CanManageMasterData")]` above the `Create`, `Update`, and `Delete` methods in `GradesController.cs` — reads stay open to any authenticated user, writes require the Owner role.
+Finally, put `[Authorize(Policy = "CanManageMasterData")]` above the `Create`, `Update`, and `Deactivate` methods in `GradesController.cs` — reads stay open to any authenticated user, writes require the Owner role.
 
 ### 7.6 — Test the lock in Swagger
 
@@ -1058,11 +1150,12 @@ The teaching phase is over; now it's reps. For **every new feature**, follow the
 
 ```
 entity (Domain/Entities) → configuration (Infrastructure/Persistence/Configurations)
-→ migration (.\ef-add.ps1 <Name>) → repository interface with projected reads (Domain/Repositories)
+→ migration (.\ef-add.ps1 <Name>) → repository interface with projected + ExistsByNameAsync reads (Domain/Repositories)
 → repository implementation (Infrastructure/Persistence/Repositories)
-→ DTOs (Api/Features/<Name>) → service interface + implementation (Api/Features/<Name>)
-→ DI registration (Program.cs) → validator, using .RequiredName()/other shared rules (Api/Features/<Name>)
-→ thin controller extending ApiControllerBase (Api/Features/<Name>) → policy → (FE screen, see frontend guide)
+→ DTOs, incl. separate Create/Update requests where IsActive differs (Api/Application/<Name>)
+→ service interface + implementation, using ServiceResult<T>/ServiceError (Api/Application/<Name>)
+→ DI registration (Program.cs) → validator, using .RequiredName()/other shared rules (Api/Application/<Name>)
+→ thin controller extending ApiControllerBase (Api/Presentation/Controllers) → policy → (FE screen, see frontend guide)
 ```
 
 1. **Master data** (M7): Product (with ProductType/MakeMode — [doc 02](<../AI Guide/02-data-model.md>)), PackSize, Block, Crop/Cultivar, InputItem, Supplier, Customer, PriceList/Price. Also `AccountingPeriod` + its SaveChanges date-check interceptor, and the audit interceptor ([doc 10](<../AI Guide/10-go-live-controls.md>), [doc 12](<../AI Guide/12-implementation-handoff.md>)) — interceptors are middleware's cousin for the DB side.

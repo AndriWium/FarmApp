@@ -11,7 +11,15 @@ FarmApp.sln
                               -- repository INTERFACES. No EF, no web, no refs out.
     FarmApp.Infrastructure/   -- EF Core DbContext, migrations, repository
                               -- IMPLEMENTATIONS, file storage, email/etc.
-    FarmApp.Api/              -- controllers, DTOs, validation, auth, DI wiring
+    FarmApp.Api/
+      Application/<Feature>/  -- services (interfaces + implementations), DTOs,
+                              -- validators. Pure C# — no ActionResult, no
+                              -- [Http...] attributes, no ASP.NET Core types.
+      Application/Common/     -- cross-feature Application types (ServiceResult<T>,
+                              -- ServiceError, shared validator rules)
+      Presentation/Controllers/ -- controllers only: HTTP in, service call, HTTP out
+      Presentation/            -- ApiControllerBase + other presentation-only shared code
+      Program.cs               -- DI wiring, middleware pipeline, auth config
   tests/
     FarmApp.Domain.Tests/     -- pure unit tests (costing rules live here)
     FarmApp.Api.Tests/        -- integration tests (in-memory/localdb)
@@ -20,7 +28,7 @@ FarmApp.sln
   docs/                       -- these documents
 ```
 
-Dependency rule: `Api → Infrastructure → Domain`. Domain references nothing. Business rules (withholding-period checks, FIFO depletion, costing) live in Domain services — testable without a database or web server.
+Dependency rule: `Api → Infrastructure → Domain`. Domain references nothing. Business rules (withholding-period checks, FIFO depletion, costing) live in Domain services — testable without a database or web server. **Within Api**, the same discipline applies one level down: `Presentation → Application` — a controller may reference the `Application` layer's services/DTOs, but nothing in `Application` may reference `Presentation` (no `ActionResult`, no `[ApiController]`, no HTTP status codes). This is a single-project convention, not an assembly boundary — no compiler enforces it, so it's on you: if a service method ever wants to return an `IActionResult`, that logic belongs in the controller instead. `Application` types encode outcomes generically (`ServiceResult<T>`/`ServiceError` in `Application/Common/`); `Presentation/ApiControllerBase` is the one place that translates those into HTTP.
 
 ## SOLID, applied concretely (not as a poster)
 
@@ -47,8 +55,10 @@ Dependency rule: `Api → Infrastructure → Domain`. Domain references nothing.
 
 - Routes: `/api/v1/{resource}` plural kebab-case; use-case POSTs where CRUD doesn't fit (`POST /api/v1/till-sessions/{id}/close`).
 - DTOs per endpoint (request/response records), FluentValidation on requests, AutoMapper optional — hand-mapping is fine and clearer at this size.
-- Errors: RFC 7807 `ProblemDetails` everywhere; validation errors 400 with field map; never leak exceptions.
+- **Controllers stay thin:** read the request, call one `Application` service method, translate the result to an HTTP status. No entity construction, no repository/`IUnitOfWork` calls, no business rules in a controller action — if a controller method is doing more than that, the missing piece belongs in its `Application` service.
+- Errors: RFC 7807 `ProblemDetails` everywhere; validation errors 400 with field map; business-rule failures (duplicate name, etc.) return via `ServiceResult<T>`/`ServiceError` → 409/other, not exceptions; never leak exceptions.
 - Idempotency: all transactional POSTs accept `ClientGuid` (doc 08) and return the existing resource on replay.
+- Personal/sensitive data travels in the request **body** (`[FromBody]`), never as a route or query parameter — route params stay limited to opaque IDs.
 - Swagger/OpenAPI always on (auth-protected in prod); it is the contract for any future client.
 
 ## Angular conventions
