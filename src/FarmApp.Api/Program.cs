@@ -4,6 +4,7 @@ using FarmApp.Api.Application.Blocks;
 using FarmApp.Api.Application.Crops;
 using FarmApp.Api.Application.Cultivars;
 using FarmApp.Api.Application.Grades;
+using FarmApp.Api.Application.InputItems;
 using FarmApp.Api.Middleware;
 using FarmApp.Domain.Entities;
 using FarmApp.Domain.Repositories;
@@ -47,12 +48,14 @@ builder.Services.AddScoped<IGradeRepository, GradeRepository>();
 builder.Services.AddScoped<IBlockRepository, BlockRepository>();
 builder.Services.AddScoped<ICropRepository, CropRepository>();
 builder.Services.AddScoped<ICultivarRepository, CultivarRepository>();
+builder.Services.AddScoped<IInputItemRepository, InputItemRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
 builder.Services.AddScoped<IGradeService, GradeService>();
 builder.Services.AddScoped<IBlockService, BlockService>();
 builder.Services.AddScoped<ICropService, CropService>();
 builder.Services.AddScoped<ICultivarService, CultivarService>();
+builder.Services.AddScoped<IInputItemService, InputItemService>();
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();
@@ -62,6 +65,8 @@ builder.Services.AddScoped<IValidator<CreateCropRequest>, CreateCropRequestValid
 builder.Services.AddScoped<IValidator<UpdateCropRequest>, UpdateCropRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateCultivarRequest>, CreateCultivarRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateCultivarRequest>, UpdateCultivarRequestValidator>();
+builder.Services.AddScoped<IValidator<CreateInputItemRequest>, CreateInputItemRequestValidator>();
+builder.Services.AddScoped<IValidator<UpdateInputItemRequest>, UpdateInputItemRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();
 
@@ -87,7 +92,12 @@ builder.Services.AddAuthorizationBuilder()
         .RequireAuthenticatedUser().Build())
     .AddPolicy("CanManageMasterData", p => p.RequireRole("Owner"));
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    // InputItem.Category is the first enum exposed through the API; serialize enums as
+    // strings everywhere (matches the "stored as strings for report readability" DB rule -
+    // doc 11) rather than the default numeric JSON representation.
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(
+        new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddProblemDetails();
 
 // Swashbuckle's own SwaggerGen document generation (replaces Microsoft.AspNetCore.OpenApi's
