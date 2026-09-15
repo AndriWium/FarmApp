@@ -8,6 +8,8 @@ using FarmApp.Api.Application.Customers;
 using FarmApp.Api.Application.Grades;
 using FarmApp.Api.Application.InputItems;
 using FarmApp.Api.Application.InputPurchases;
+using FarmApp.Api.Application.Plantings;
+using FarmApp.Api.Application.Seasons;
 using FarmApp.Api.Application.Locations;
 using FarmApp.Api.Application.PackSizes;
 using FarmApp.Api.Application.PriceLists;
@@ -87,6 +89,8 @@ builder.Services.AddScoped<ICustomerPaymentRepository, CustomerPaymentRepository
 builder.Services.AddScoped<IInputPurchaseRepository, InputPurchaseRepository>();
 builder.Services.AddScoped<IInputPurchaseLineRepository, InputPurchaseLineRepository>();
 builder.Services.AddScoped<IInputStockMovementRepository, InputStockMovementRepository>();
+builder.Services.AddScoped<IPlantingRepository, PlantingRepository>();
+builder.Services.AddScoped<ISeasonRepository, SeasonRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
 // Domain services — defined in FarmApp.Domain, wired up here per doc 11's dependency-inversion rule.
@@ -113,6 +117,8 @@ builder.Services.AddScoped<ITillSessionService, TillSessionService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<ICustomerPaymentService, CustomerPaymentService>();
 builder.Services.AddScoped<IInputPurchaseService, InputPurchaseService>();
+builder.Services.AddScoped<IPlantingService, PlantingService>();
+builder.Services.AddScoped<ISeasonService, SeasonService>();
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();
@@ -149,6 +155,10 @@ builder.Services.AddScoped<IValidator<CloseTillSessionRequest>, CloseTillSession
 builder.Services.AddScoped<IValidator<CreateSaleRequest>, CreateSaleRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateCustomerPaymentRequest>, CreateCustomerPaymentRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateInputPurchaseRequest>, CreateInputPurchaseRequestValidator>();
+builder.Services.AddScoped<IValidator<CreatePlantingRequest>, CreatePlantingRequestValidator>();
+builder.Services.AddScoped<IValidator<UpdatePlantingRequest>, UpdatePlantingRequestValidator>();
+builder.Services.AddScoped<IValidator<CreateSeasonRequest>, CreateSeasonRequestValidator>();
+builder.Services.AddScoped<IValidator<UpdateSeasonRequest>, UpdateSeasonRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();
 

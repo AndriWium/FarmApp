@@ -42,6 +42,8 @@ public class FarmAppDbContext(DbContextOptions<FarmAppDbContext> options) : DbCo
     public DbSet<InputPurchase> InputPurchases => Set<InputPurchase>();
     public DbSet<InputPurchaseLine> InputPurchaseLines => Set<InputPurchaseLine>();
     public DbSet<InputStockMovement> InputStockMovements => Set<InputStockMovement>();
+    public DbSet<Planting> Plantings => Set<Planting>();
+    public DbSet<Season> Seasons => Set<Season>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
