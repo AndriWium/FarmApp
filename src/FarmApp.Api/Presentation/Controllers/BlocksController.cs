@@ -1,5 +1,6 @@
 using FarmApp.Api.Application.Blocks;
 using FarmApp.Api.Application.Common;
+using FarmApp.Api.Application.WithholdingLocks;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,7 @@ namespace FarmApp.Api.Presentation.Controllers;
 
 [ApiController]
 [Route("api/v1/[controller]")]
-public class BlocksController(IBlockService service) : ApiControllerBase
+public class BlocksController(IBlockService service, IWithholdingLockService withholdingLockService) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<List<BlockDto>>> GetAll([FromQuery] bool includeInactive, CancellationToken ct)
@@ -53,5 +54,17 @@ public class BlocksController(IBlockService service) : ApiControllerBase
     {
         var error = await service.DeactivateAsync(id, ct);
         return error == ServiceError.None ? NoContent() : ErrorResult(error, "block");
+    }
+
+    /// <summary>Read-only pre-check (doc 05 §5, task brief) - lets the frontend warn a user about
+    /// a chemical withholding lock *before* they submit a harvest, rather than only discovering it
+    /// on rejection. Returns the same shape IHarvestService.CreateHarvestAsync enforces server-side.
+    /// date defaults to today when omitted, matching a "can I harvest here right now" quick check.</summary>
+    [HttpGet("{id:int}/withholding-status")]
+    public async Task<ActionResult<WithholdingStatusDto>> GetWithholdingStatus(
+        int id, [FromQuery] DateTime? date, CancellationToken ct)
+    {
+        var status = await withholdingLockService.GetLockStatusAsync(id, date ?? DateTime.Today, ct);
+        return status is null ? NotFound() : status;
     }
 }

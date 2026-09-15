@@ -12,6 +12,7 @@ using FarmApp.Api.Application.Plantings;
 using FarmApp.Api.Application.Seasons;
 using FarmApp.Api.Application.ActivityTypes;
 using FarmApp.Api.Application.Activities;
+using FarmApp.Api.Application.WithholdingLocks;
 using FarmApp.Api.Application.RainfallLogs;
 using FarmApp.Api.Application.Locations;
 using FarmApp.Api.Application.PackSizes;
@@ -103,6 +104,7 @@ builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbCon
 // Domain services — defined in FarmApp.Domain, wired up here per doc 11's dependency-inversion rule.
 builder.Services.AddScoped<IStockAllocationService, StockAllocationService>();
 builder.Services.AddScoped<ISaleLineCalculator, SaleLineCalculator>();
+builder.Services.AddScoped<IWithholdingLockCalculator, WithholdingLockCalculator>();
 
 builder.Services.AddScoped<IGradeService, GradeService>();
 builder.Services.AddScoped<IBlockService, BlockService>();
@@ -129,6 +131,7 @@ builder.Services.AddScoped<ISeasonService, SeasonService>();
 builder.Services.AddScoped<IActivityTypeService, ActivityTypeService>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<IRainfallLogService, RainfallLogService>();
+builder.Services.AddScoped<IWithholdingLockService, WithholdingLockService>();
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();

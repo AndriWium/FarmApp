@@ -12,4 +12,13 @@ public interface IActivityInputRepository
         int activityId, Expression<Func<ActivityInput, TResult>> selector, CancellationToken ct);
 
     Task AddRangeAsync(IEnumerable<ActivityInput> lines, CancellationToken ct);
+
+    /// <summary>Chemical-category spray inputs applied under any Season/Planting on the given
+    /// block - the Planting -> Season -> Activity -> ActivityInput -> InputItem trace (doc 05 §5,
+    /// Phase 3b task brief) that IWithholdingLockService needs to compute a block's withholding
+    /// lock. Lives here (not on IPlantingRepository/ISeasonRepository/IActivityRepository)
+    /// because its primary aggregate is ActivityInput rows - the other tables are joined only to
+    /// filter down to one block - matching ISalePaymentRepository's "the repository owns the
+    /// query whose primary entity it aggregates" precedent (see DECISIONS.md, Phase 2b).</summary>
+    Task<List<ChemicalSprayRow>> GetChemicalSpraysForBlockAsync(int blockId, CancellationToken ct);
 }
