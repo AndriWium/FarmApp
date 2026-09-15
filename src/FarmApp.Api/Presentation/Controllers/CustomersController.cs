@@ -1,4 +1,5 @@
 using FarmApp.Api.Application.Common;
+using FarmApp.Api.Application.CustomerPayments;
 using FarmApp.Api.Application.Customers;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -12,7 +13,7 @@ namespace FarmApp.Api.Presentation.Controllers;
 // here rather than adding e.g. a search-by-phone query endpoint.
 [ApiController]
 [Route("api/v1/[controller]")]
-public class CustomersController(ICustomerService service) : ApiControllerBase
+public class CustomersController(ICustomerService service, ICustomerPaymentService customerPaymentService) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<List<CustomerDto>>> GetAll([FromQuery] bool includeInactive, CancellationToken ct)
@@ -57,5 +58,15 @@ public class CustomersController(ICustomerService service) : ApiControllerBase
     {
         var error = await service.DeactivateAsync(id, ct);
         return error == ServiceError.None ? NoContent() : ErrorResult(error, "customer");
+    }
+
+    /// <summary>Derived balance (doc 02's "derive, don't store" rule) - never a persisted column.
+    /// Exposed here rather than under /customer-payments so a customer's balance stays
+    /// discoverable alongside the rest of their record.</summary>
+    [HttpGet("{id:int}/balance")]
+    public async Task<ActionResult<CustomerBalanceDto>> GetBalance(int id, CancellationToken ct)
+    {
+        var balance = await customerPaymentService.GetBalanceAsync(id, ct);
+        return balance is null ? NotFound() : balance;
     }
 }
