@@ -44,6 +44,9 @@ public class FarmAppDbContext(DbContextOptions<FarmAppDbContext> options) : DbCo
     public DbSet<InputStockMovement> InputStockMovements => Set<InputStockMovement>();
     public DbSet<Planting> Plantings => Set<Planting>();
     public DbSet<Season> Seasons => Set<Season>();
+    public DbSet<ActivityType> ActivityTypes => Set<ActivityType>();
+    public DbSet<Activity> Activities => Set<Activity>();
+    public DbSet<ActivityInput> ActivityInputs => Set<ActivityInput>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
