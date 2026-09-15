@@ -52,6 +52,11 @@ public abstract class ApiControllerBase : ControllerBase
             statusCode: StatusCodes.Status409Conflict,
             title: "Sale already refunded",
             detail: "This sale was already refunded - it can only be refunded once."),
+        ServiceError.WithholdingLocked => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Withholding period active",
+            detail: "This harvest falls inside a chemical withholding-period lock on the block - " +
+                     "supply a WithholdingOverrideReason to proceed anyway."),
         _ => Problem(statusCode: StatusCodes.Status500InternalServerError),
     };
 
@@ -62,6 +67,7 @@ public abstract class ApiControllerBase : ControllerBase
     {
         ServiceError.InsufficientStock => Problem(statusCode: StatusCodes.Status409Conflict, title: "Insufficient stock", detail: detail),
         ServiceError.PaymentMismatch => Problem(statusCode: StatusCodes.Status409Conflict, title: "Payment mismatch", detail: detail),
+        ServiceError.WithholdingLocked => Problem(statusCode: StatusCodes.Status409Conflict, title: "Withholding period active", detail: detail),
         _ => ErrorResult(error, entityName),
     };
 }

@@ -12,6 +12,7 @@ using FarmApp.Api.Application.Plantings;
 using FarmApp.Api.Application.Seasons;
 using FarmApp.Api.Application.ActivityTypes;
 using FarmApp.Api.Application.Activities;
+using FarmApp.Api.Application.Harvests;
 using FarmApp.Api.Application.WithholdingLocks;
 using FarmApp.Api.Application.RainfallLogs;
 using FarmApp.Api.Application.Locations;
@@ -99,6 +100,8 @@ builder.Services.AddScoped<IActivityTypeRepository, ActivityTypeRepository>();
 builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 builder.Services.AddScoped<IActivityInputRepository, ActivityInputRepository>();
 builder.Services.AddScoped<IRainfallLogRepository, RainfallLogRepository>();
+builder.Services.AddScoped<IHarvestRepository, HarvestRepository>();
+builder.Services.AddScoped<IHarvestLineRepository, HarvestLineRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
 // Domain services — defined in FarmApp.Domain, wired up here per doc 11's dependency-inversion rule.
@@ -131,6 +134,7 @@ builder.Services.AddScoped<ISeasonService, SeasonService>();
 builder.Services.AddScoped<IActivityTypeService, ActivityTypeService>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<IRainfallLogService, RainfallLogService>();
+builder.Services.AddScoped<IHarvestService, HarvestService>();
 builder.Services.AddScoped<IWithholdingLockService, WithholdingLockService>();
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
@@ -177,6 +181,7 @@ builder.Services.AddScoped<IValidator<UpdateActivityTypeRequest>, UpdateActivity
 builder.Services.AddScoped<IValidator<CreateActivityRequest>, CreateActivityRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateRainfallLogRequest>, CreateRainfallLogRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateRainfallLogRequest>, UpdateRainfallLogRequestValidator>();
+builder.Services.AddScoped<IValidator<CreateHarvestRequest>, CreateHarvestRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();
 

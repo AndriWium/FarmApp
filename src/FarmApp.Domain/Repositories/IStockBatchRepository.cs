@@ -19,4 +19,13 @@ public interface IStockBatchRepository
     /// IStockMovementService.RecordSaleDepletionAsync needs after FIFO allocation to hand the
     /// caller each touched batch's cost (StockAllocation itself only carries BatchId/QtyToTake).</summary>
     Task<Dictionary<int, decimal>> GetUnitCostsByIdsAsync(IEnumerable<int> batchIds, CancellationToken ct);
+
+    /// <summary>Batches created from the given Harvest id, ordered by StockBatchId ascending.
+    /// Unlike ProducePurchaseLine, HarvestLine has no matching per-line pointer on StockBatch -
+    /// doc 02's StockBatch field list only carries HarvestId (the header) - so
+    /// IHarvestService.ToDtoAsync reconstructs the line/batch pairing positionally: lines
+    /// (ordered by HarvestLineId) and batches (ordered by StockBatchId) are created 1:1 in the
+    /// same order within CreateHarvestAsync's loop (see DECISIONS.md for this limitation).</summary>
+    Task<List<TResult>> GetByHarvestIdAsync<TResult>(
+        int harvestId, Expression<Func<StockBatch, TResult>> selector, CancellationToken ct);
 }

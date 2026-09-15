@@ -32,6 +32,13 @@ public enum ServiceError
     /// <summary>RefundSaleAsync rejected: this Sale's Status is already Refunded - a sale can only
     /// be refunded once (Phase 2b task brief).</summary>
     SaleAlreadyRefunded,
+
+    /// <summary>CreateHarvestAsync rejected: the harvest date falls inside a chemical
+    /// withholding-period lock on this season's block, and no WithholdingOverrideReason was
+    /// supplied (doc 05 §5, Phase 3b task brief). A soft block with a required, traceable
+    /// override, not a hard rejection with no way through - supplying an override reason on a
+    /// retried request proceeds instead of failing again.</summary>
+    WithholdingLocked,
 }
 
 /// <summary>A service result carrying either a value (Error == None) or a business error.

@@ -48,6 +48,8 @@ public class FarmAppDbContext(DbContextOptions<FarmAppDbContext> options) : DbCo
     public DbSet<Activity> Activities => Set<Activity>();
     public DbSet<ActivityInput> ActivityInputs => Set<ActivityInput>();
     public DbSet<RainfallLog> RainfallLogs => Set<RainfallLog>();
+    public DbSet<Harvest> Harvests => Set<Harvest>();
+    public DbSet<HarvestLine> HarvestLines => Set<HarvestLine>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {

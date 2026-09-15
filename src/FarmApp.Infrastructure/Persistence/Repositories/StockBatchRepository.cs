@@ -36,4 +36,12 @@ public class StockBatchRepository(FarmAppDbContext db) : IStockBatchRepository
         => db.StockBatches.AsNoTracking()
             .Where(b => batchIds.Contains(b.StockBatchId))
             .ToDictionaryAsync(b => b.StockBatchId, b => b.UnitCost, ct);
+
+    public Task<List<TResult>> GetByHarvestIdAsync<TResult>(
+        int harvestId, Expression<Func<StockBatch, TResult>> selector, CancellationToken ct)
+        => db.StockBatches.AsNoTracking()
+            .Where(b => b.HarvestId == harvestId)
+            .OrderBy(b => b.StockBatchId)
+            .Select(selector)
+            .ToListAsync(ct);
 }
