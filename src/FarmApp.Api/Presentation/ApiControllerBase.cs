@@ -24,6 +24,18 @@ public abstract class ApiControllerBase : ControllerBase
             statusCode: StatusCodes.Status409Conflict,
             title: "Duplicate name",
             detail: $"A {entityName} with this name already exists (it may be deactivated)."),
+        ServiceError.InsufficientStock => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Insufficient stock",
+            detail: $"Not enough {entityName} on hand to cover the requested quantity."),
         _ => Problem(statusCode: StatusCodes.Status500InternalServerError),
+    };
+
+    /// <summary>Same mapping as ErrorResult, with a precise message for InsufficientStock (the
+    /// FIFO service reports exactly how much was requested vs. available).</summary>
+    protected ActionResult ErrorResult(ServiceError error, string entityName, string detail) => error switch
+    {
+        ServiceError.InsufficientStock => Problem(statusCode: StatusCodes.Status409Conflict, title: "Insufficient stock", detail: detail),
+        _ => ErrorResult(error, entityName),
     };
 }

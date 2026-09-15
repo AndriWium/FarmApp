@@ -11,10 +11,13 @@ using FarmApp.Api.Application.PackSizes;
 using FarmApp.Api.Application.PriceLists;
 using FarmApp.Api.Application.Prices;
 using FarmApp.Api.Application.Products;
+using FarmApp.Api.Application.StockBatches;
+using FarmApp.Api.Application.StockMovements;
 using FarmApp.Api.Application.Suppliers;
 using FarmApp.Api.Middleware;
 using FarmApp.Domain.Entities;
 using FarmApp.Domain.Repositories;
+using FarmApp.Domain.Services;
 using FarmApp.Infrastructure.Persistence;
 using FarmApp.Infrastructure.Persistence.Interceptors;
 using FarmApp.Infrastructure.Persistence.Repositories;
@@ -64,7 +67,12 @@ builder.Services.AddScoped<IRecipeLineRepository, RecipeLineRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IPriceRepository, PriceRepository>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
+builder.Services.AddScoped<IStockBatchRepository, StockBatchRepository>();
+builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
+
+// Domain service — defined in FarmApp.Domain, wired up here per doc 11's dependency-inversion rule.
+builder.Services.AddScoped<IStockAllocationService, StockAllocationService>();
 
 builder.Services.AddScoped<IGradeService, GradeService>();
 builder.Services.AddScoped<IBlockService, BlockService>();
@@ -78,6 +86,8 @@ builder.Services.AddScoped<IPackSizeService, PackSizeService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IPriceService, PriceService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
+builder.Services.AddScoped<IStockBatchService, StockBatchService>();
+builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();
@@ -103,6 +113,9 @@ builder.Services.AddScoped<IValidator<UpdateCustomerRequest>, UpdateCustomerRequ
 builder.Services.AddScoped<IValidator<SetPriceRequest>, SetPriceRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateLocationRequest>, CreateLocationRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateLocationRequest>, UpdateLocationRequestValidator>();
+builder.Services.AddScoped<IValidator<CreateStockBatchRequest>, CreateStockBatchRequestValidator>();
+builder.Services.AddScoped<IValidator<RecordStockMovementRequest>, RecordStockMovementRequestValidator>();
+builder.Services.AddScoped<IValidator<TransferStockRequest>, TransferStockRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();
 
