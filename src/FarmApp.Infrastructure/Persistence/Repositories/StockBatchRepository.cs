@@ -31,4 +31,9 @@ public class StockBatchRepository(FarmAppDbContext db) : IStockBatchRepository
             .Where(b => b.PurchaseLineId != null && purchaseLineIds.Contains(b.PurchaseLineId.Value))
             .Select(selector)
             .ToListAsync(ct);
+
+    public Task<Dictionary<int, decimal>> GetUnitCostsByIdsAsync(IEnumerable<int> batchIds, CancellationToken ct)
+        => db.StockBatches.AsNoTracking()
+            .Where(b => batchIds.Contains(b.StockBatchId))
+            .ToDictionaryAsync(b => b.StockBatchId, b => b.UnitCost, ct);
 }

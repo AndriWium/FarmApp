@@ -16,3 +16,10 @@ public record RecordStockMovementRequest(int ProductId, int? GradeId, decimal Qt
 public record TransferStockRequest(int ProductId, int? GradeId, decimal Qty, int FromLocationId, int ToLocationId, string? Reason);
 
 public record StockOnHandSummaryDto(int ProductId, string ProductName, int? GradeId, string? GradeName, decimal QtyOnHand, decimal Value);
+
+/// <summary>One FIFO-allocated batch a sale line's depletion touched: how much quantity came
+/// from it and that batch's UnitCost - Sales.SaleService uses this list (never just the first
+/// entry) to compute a qty-weighted-average CostAtSale via the Domain's ISaleLineCalculator.</summary>
+public record SaleDepletionAllocation(int StockBatchId, decimal QtyTaken, decimal UnitCost);
+
+public record SaleDepletionResult(List<SaleDepletionAllocation> Allocations, List<StockMovementDto> Movements);

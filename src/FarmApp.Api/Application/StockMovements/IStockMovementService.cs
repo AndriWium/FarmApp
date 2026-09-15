@@ -23,4 +23,14 @@ public interface IStockMovementService
     /// commits every line's CountedQty/Variance update and every resulting movement in one
     /// atomic save).</summary>
     Task<StockMovementDto> RecordBatchAdjustmentAsync(int stockBatchId, decimal signedQty, string? reason, int? locationId, CancellationToken ct);
+
+    /// <summary>FIFO-depletes qtyBaseUnits (already converted from pack units if the sale line
+    /// sold a pack - the caller's job, not this method's) for one Sale line, writing one SaleOut
+    /// movement per batch touched (RefTable "Sale"/RefId saleId, for traceability). Returns each
+    /// touched batch's id/qty/UnitCost so the caller (Sales.SaleService) can compute that line's
+    /// weighted-average CostAtSale. Deliberately does NOT call SaveChangesAsync - same contract
+    /// as RecordBatchAdjustmentAsync: SaleService controls the transaction boundary for the whole
+    /// sale (header + every line's movements + every payment, one atomic commit).</summary>
+    Task<ServiceResult<SaleDepletionResult>> RecordSaleDepletionAsync(
+        int productId, int? gradeId, decimal qtyBaseUnits, int saleId, int? locationId, CancellationToken ct);
 }

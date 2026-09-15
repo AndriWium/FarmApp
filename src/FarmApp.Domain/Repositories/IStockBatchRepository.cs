@@ -14,4 +14,9 @@ public interface IStockBatchRepository
     /// back with each line's resulting StockBatchId for traceability (doc 02).</summary>
     Task<List<TResult>> GetByPurchaseLineIdsAsync<TResult>(
         IEnumerable<int> purchaseLineIds, Expression<Func<StockBatch, TResult>> selector, CancellationToken ct);
+
+    /// <summary>UnitCost for each of the given batch ids, keyed by StockBatchId - what
+    /// IStockMovementService.RecordSaleDepletionAsync needs after FIFO allocation to hand the
+    /// caller each touched batch's cost (StockAllocation itself only carries BatchId/QtyToTake).</summary>
+    Task<Dictionary<int, decimal>> GetUnitCostsByIdsAsync(IEnumerable<int> batchIds, CancellationToken ct);
 }

@@ -12,6 +12,7 @@ public class StockMovementService(
     IProductRepository productRepo,
     IGradeRepository gradeRepo,
     ILocationRepository locationRepo,
+    IStockBatchRepository stockBatchRepo,
     IUnitOfWork uow) : IStockMovementService
 {
     public async Task<ServiceResult<List<StockMovementDto>>> RecordAsync(
@@ -108,6 +109,45 @@ public class StockMovementService(
         // RecordBatchAdjustmentAsync. The caller (StockTakeService) saves once for the whole
         // reconciliation batch.
         return ToDto(movement);
+    }
+
+    public async Task<ServiceResult<SaleDepletionResult>> RecordSaleDepletionAsync(
+        int productId, int? gradeId, decimal qtyBaseUnits, int saleId, int? locationId, CancellationToken ct)
+    {
+        var allocated = await TryAllocateAsync(productId, gradeId, qtyBaseUnits, ct);
+        if (allocated.Error != ServiceError.None)
+            return ServiceResult<SaleDepletionResult>.Fail(
+                allocated.Error, $"Product {productId}: {allocated.Detail}");
+
+        // StockAllocation only carries BatchId/QtyToTake - fetch each touched batch's UnitCost so
+        // the caller can compute a weighted-average CostAtSale without a second round trip itself.
+        var batchIds = allocated.Value!.Select(a => a.BatchId).ToList();
+        var unitCostByBatch = await stockBatchRepo.GetUnitCostsByIdsAsync(batchIds, ct);
+
+        var now = DateTime.UtcNow;
+        var movements = allocated.Value!.Select(a => new StockMovement
+        {
+            StockBatchId = a.BatchId,
+            Date = now,
+            Type = StockMovementType.SaleOut,
+            Qty = -a.QtyToTake, // depletion is always negative
+            RefTable = "Sale",
+            RefId = saleId,
+            LocationId = locationId,
+        }).ToList();
+
+        await movementRepo.AddRangeAsync(movements, ct);
+        // No SaveChangesAsync here by design - see the XML doc on IStockMovementService's
+        // RecordSaleDepletionAsync (same contract as RecordBatchAdjustmentAsync). SaleService
+        // saves and commits once for the whole sale (header, every line's movements, every
+        // payment) inside its own explicit transaction.
+
+        var allocations = allocated.Value!
+            .Select(a => new SaleDepletionAllocation(a.BatchId, a.QtyToTake, unitCostByBatch[a.BatchId]))
+            .ToList();
+
+        return ServiceResult<SaleDepletionResult>.Ok(
+            new SaleDepletionResult(allocations, movements.Select(ToDto).ToList()));
     }
 
     public async Task<List<StockOnHandSummaryDto>> GetOnHandSummaryAsync(CancellationToken ct)
