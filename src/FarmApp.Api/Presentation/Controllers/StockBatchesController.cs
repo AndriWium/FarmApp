@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace FarmApp.Api.Presentation.Controllers;
 
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/stock-batches")]
 public class StockBatchesController(IStockBatchService service) : ApiControllerBase
 {
     [HttpGet]

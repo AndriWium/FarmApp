@@ -10,7 +10,7 @@ namespace FarmApp.Api.Presentation.Controllers;
 /// CanManageMasterData, unlike Planting/Season/Activity/RainfallLog which record day-to-day
 /// farm events (Phase 3a task brief).</summary>
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/activity-types")]
 public class ActivityTypesController(IActivityTypeService service) : ApiControllerBase
 {
     [HttpGet]

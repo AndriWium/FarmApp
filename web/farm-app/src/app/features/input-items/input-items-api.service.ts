@@ -6,13 +6,7 @@ import { CreateInputItemRequest, InputItemDto, UpdateInputItemRequest } from './
 @Injectable({ providedIn: 'root' })
 export class InputItemsApiService {
   private http = inject(HttpClient);
-  // NOT kebab-case: InputItemsController left [Route("api/v1/[controller]")] on the default
-  // [controller] token instead of an explicit "input-items" route (unlike its sibling
-  // controllers - TillSessions, ProducePurchases, etc. - which all override it). The real,
-  // verified route is "api/v1/InputItems" (case-insensitive per ASP.NET routing defaults).
-  // Backend is out of scope for this phase per the task brief ("never touch... unless blocking");
-  // this isn't blocking, so the frontend just points at the real path. Logged in DECISIONS.md.
-  private url = `${environment.apiUrl}/InputItems`;
+  private url = `${environment.apiUrl}/input-items`;
 
   getAll(includeInactive = false) {
     return this.http.get<InputItemDto[]>(this.url, { params: { includeInactive } });
