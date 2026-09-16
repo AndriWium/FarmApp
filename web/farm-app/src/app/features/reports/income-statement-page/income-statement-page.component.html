@@ -1,0 +1,98 @@
+<h1>Income Statement</h1>
+
+<div class="filters">
+  <label>
+    From
+    <input type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" />
+  </label>
+  <label>
+    To
+    <input type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" />
+  </label>
+  <button type="button" (click)="load()">Refresh</button>
+  <a class="drill" [routerLink]="['/reports/sales-analysis']" [queryParams]="salesAnalysisLink()">
+    See the sales &amp; COS transactions behind this &rarr;
+  </a>
+</div>
+
+@if (loading()) {
+  <p class="hint">Loading income statement...</p>
+} @else if (error()) {
+  <p class="error">{{ error() }}</p>
+} @else {
+  @if (period(); as p) {
+  <table class="statement">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Selected Period</th>
+        <th>Year to Date</th>
+        <th>Same Period Last Year</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="line">
+        <td>Sales</td>
+        <td>{{ p.sales | number: '1.2-2' }}</td>
+        <td>{{ yearToDate()?.sales | number: '1.2-2' }}</td>
+        <td>{{ lastYear()?.sales | number: '1.2-2' }}</td>
+      </tr>
+      <tr class="line negative">
+        <td>Cost of sales</td>
+        <td>({{ p.cos | number: '1.2-2' }})</td>
+        <td>({{ yearToDate()?.cos | number: '1.2-2' }})</td>
+        <td>({{ lastYear()?.cos | number: '1.2-2' }})</td>
+      </tr>
+      <tr class="line negative">
+        <td>Wastage</td>
+        <td>({{ p.wastage | number: '1.2-2' }})</td>
+        <td>({{ yearToDate()?.wastage | number: '1.2-2' }})</td>
+        <td>({{ lastYear()?.wastage | number: '1.2-2' }})</td>
+      </tr>
+      <tr class="subtotal">
+        <td>Gross profit</td>
+        <td>{{ p.grossProfit | number: '1.2-2' }}</td>
+        <td>{{ yearToDate()?.grossProfit | number: '1.2-2' }}</td>
+        <td>{{ lastYear()?.grossProfit | number: '1.2-2' }}</td>
+      </tr>
+      <tr class="hint-row">
+        <td>Gross profit %</td>
+        <td>{{ periodGpPercent() === null ? '-' : (periodGpPercent() | number: '1.1-1') + '%' }}</td>
+        <td></td>
+        <td>{{ lastYearGpPercent() === null ? '-' : (lastYearGpPercent() | number: '1.1-1') + '%' }}</td>
+      </tr>
+      <tr class="section-head">
+        <td colspan="4">Expenses by category</td>
+      </tr>
+      @for (cat of p.expensesByCategory; track cat.expenseCategoryId) {
+        <tr class="line negative indent">
+          <td>{{ cat.categoryName }}</td>
+          <td>({{ cat.total | number: '1.2-2' }})</td>
+          <td></td>
+          <td></td>
+        </tr>
+      }
+      @if (p.expensesByCategory.length === 0) {
+        <tr class="hint-row">
+          <td class="indent">No expenses recorded in this period.</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+      }
+      <tr class="subtotal">
+        <td>Total expenses</td>
+        <td>({{ p.totalExpenses | number: '1.2-2' }})</td>
+        <td>({{ yearToDate()?.totalExpenses | number: '1.2-2' }})</td>
+        <td>({{ lastYear()?.totalExpenses | number: '1.2-2' }})</td>
+      </tr>
+      <tr class="total" [class.negative]="p.netProfit < 0">
+        <td>Net profit</td>
+        <td>{{ p.netProfit | number: '1.2-2' }}</td>
+        <td>{{ yearToDate()?.netProfit | number: '1.2-2' }}</td>
+        <td>{{ lastYear()?.netProfit | number: '1.2-2' }}</td>
+      </tr>
+    </tbody>
+  </table>
+  }
+}

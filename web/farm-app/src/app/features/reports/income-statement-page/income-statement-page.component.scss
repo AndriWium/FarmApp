@@ -1,0 +1,113 @@
+@use '../../../shared/styles/list-page';
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+  }
+
+  input {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font: inherit;
+  }
+
+  button {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid #2f6b3a;
+    border-radius: 4px;
+    background: #2f6b3a;
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .drill {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: #2f6b3a;
+  }
+}
+
+// Statement layout: label column + up to three value columns, sub-items indented, totals bold
+// with a top rule - the "read like a farmer would read it" shape the task brief asked for,
+// not a flat raw table of unlabeled numbers.
+table.statement {
+  width: 100%;
+  max-width: 720px;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 0.4rem 0.7rem;
+    text-align: right;
+  }
+
+  th:first-child,
+  td:first-child {
+    text-align: left;
+  }
+
+  thead th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #666;
+    border-bottom: 1px solid #ccc;
+  }
+
+  tr.line td {
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  tr.negative td:not(:first-child) {
+    color: #8a3b2f;
+  }
+
+  tr.indent td:first-child {
+    padding-left: 1.6rem;
+    color: #555;
+    font-size: 0.9rem;
+  }
+
+  tr.section-head td {
+    padding-top: 0.9rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #666;
+    text-align: left;
+  }
+
+  tr.subtotal td {
+    font-weight: 600;
+    border-top: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+  }
+
+  tr.total td {
+    font-weight: 700;
+    font-size: 1.05rem;
+    border-top: 2px solid #2f6b3a;
+    padding-top: 0.6rem;
+  }
+
+  tr.total.negative td {
+    border-top-color: #8a3b2f;
+    color: #8a3b2f;
+  }
+
+  tr.hint-row td {
+    color: #888;
+    font-size: 0.8rem;
+    font-style: italic;
+  }
+}

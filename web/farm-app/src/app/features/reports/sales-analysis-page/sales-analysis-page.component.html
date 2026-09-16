@@ -1,0 +1,135 @@
+<h1>Sales Analysis</h1>
+
+<div class="filters">
+  <label>
+    From
+    <input type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" />
+  </label>
+  <label>
+    To
+    <input type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" />
+  </label>
+  <button type="button" (click)="load()">Refresh</button>
+
+  <label>
+    Group by
+    <select [ngModel]="groupBy()" (ngModelChange)="onGroupByChange($event)">
+      <option value="product">Product</option>
+      <option value="grade">Grade</option>
+      <option value="channel">Channel</option>
+      <option value="customer">Customer</option>
+      <option value="dayOfWeek">Day of week</option>
+    </select>
+  </label>
+</div>
+
+@if (loading()) {
+  <p class="hint">Loading sales analysis...</p>
+} @else if (error()) {
+  <p class="error">{{ error() }}</p>
+} @else {
+  <p class="totals">
+    {{ totalQty() | number: '1.0-2' }} units sold, {{ totalRevenue() | number: '1.2-2' }} total revenue in this
+    period.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>{{ groupBy() === 'dayOfWeek' ? 'Day' : groupBy() === 'customer' ? 'Customer' : groupBy() | titlecase }}</th>
+        <th>Qty</th>
+        <th>Revenue</th>
+        <th>Discount</th>
+        <th>Margin</th>
+        <th>Avg price/qty</th>
+        @if (groupBy() === 'product') {
+          <th>Avg price/qty last period</th>
+        }
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (g of groupedRows(); track g.key) {
+        <tr [class.selected]="selectedGroupKey() === g.key">
+          <td>{{ g.label }}</td>
+          <td>{{ g.qty | number: '1.0-2' }}</td>
+          <td>{{ g.revenue | number: '1.2-2' }}</td>
+          <td>{{ g.discount > 0 ? (g.discount | number: '1.2-2') : '-' }}</td>
+          <td>{{ g.margin | number: '1.2-2' }}</td>
+          <td>{{ g.avgPricePerKg === null ? '-' : (g.avgPricePerKg | number: '1.2-2') }}</td>
+          @if (groupBy() === 'product') {
+            <td
+              [class.drift-up]="g.prevAvgPricePerKg !== null && g.avgPricePerKg !== null && g.avgPricePerKg > g.prevAvgPricePerKg"
+              [class.drift-down]="g.prevAvgPricePerKg !== null && g.avgPricePerKg !== null && g.avgPricePerKg < g.prevAvgPricePerKg"
+            >
+              {{ g.prevAvgPricePerKg === null ? 'no prior sales' : (g.prevAvgPricePerKg | number: '1.2-2') }}
+            </td>
+          }
+          <td>
+            <button type="button" class="link-btn" (click)="toggleGroup(g.key)">
+              {{ selectedGroupKey() === g.key ? 'Hide' : 'View' }} sales
+            </button>
+          </td>
+        </tr>
+        @if (selectedGroupKey() === g.key) {
+          <tr class="detail-row">
+            <td [attr.colspan]="groupBy() === 'product' ? 8 : 7">
+              <table class="detail-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Sale</th>
+                    <th>Channel</th>
+                    <th>Customer</th>
+                    <th>Qty</th>
+                    <th>Unit Price</th>
+                    <th>Line Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of detailRowsForSelectedGroup(); track row.saleLineId) {
+                    <tr>
+                      <td>{{ row.saleDateTime | date: 'yyyy-MM-dd HH:mm' }}</td>
+                      <td><a [routerLink]="['/sales', row.saleId]">Sale #{{ row.saleId }}</a></td>
+                      <td>{{ row.channel }}</td>
+                      <td>{{ customerName(row.customerId) }}</td>
+                      <td>{{ row.qty | number: '1.0-2' }}</td>
+                      <td>{{ row.unitPrice | number: '1.2-2' }}</td>
+                      <td>{{ row.lineTotal | number: '1.2-2' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        }
+      } @empty {
+        <tr>
+          <td colspan="8">No sales in this period.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  @if (discountsByReason().length > 0) {
+    <h2>Discounts &amp; markdowns by reason</h2>
+    <table class="discounts">
+      <thead>
+        <tr>
+          <th>Reason</th>
+          <th>Times used</th>
+          <th>Total discount</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (d of discountsByReason(); track d.reason) {
+          <tr>
+            <td>{{ d.reason }}</td>
+            <td>{{ d.count }}</td>
+            <td>{{ d.amount | number: '1.2-2' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+}

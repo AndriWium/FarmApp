@@ -1,0 +1,11 @@
+<h1>Reports</h1>
+<p class="hint">Owner-only. Every figure below is drawn from the same operational data you capture day to day.</p>
+
+<div class="cards">
+  @for (card of cards; track card.path) {
+    <a class="card" [routerLink]="[card.path]">
+      <h2>{{ card.label }}</h2>
+      <p>{{ card.description }}</p>
+    </a>
+  }
+</div>

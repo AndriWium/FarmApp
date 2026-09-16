@@ -1,7 +1,7 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { LocationDto } from '../../locations/location.model';
 import { LocationsApiService } from '../../locations/locations-api.service';
@@ -30,6 +30,7 @@ export class SaleListPageComponent implements OnInit {
   private salesApi = inject(SalesApiService);
   private tillSessionsApi = inject(TillSessionsApiService);
   private locationsApi = inject(LocationsApiService);
+  private route = inject(ActivatedRoute);
 
   loading = signal(true);
   sales = signal<SaleDto[]>([]);
@@ -56,6 +57,12 @@ export class SaleListPageComponent implements OnInit {
   sortedSales = computed(() => [...this.filteredSales()].sort((a, b) => b.dateTime.localeCompare(a.dateTime)));
 
   ngOnInit(): void {
+    // Supports deep-linking from the Cash & Debtors report's till-session over/short list (doc
+    // 04's drillability principle: "click a total -> see the transactions") - a ?tillSessionId=
+    // query param preselects the same server-side filter the dropdown itself sets.
+    const tillSessionIdParam = this.route.snapshot.queryParamMap.get('tillSessionId');
+    if (tillSessionIdParam) this.tillSessionFilter.set(Number(tillSessionIdParam));
+
     this.loadLookups();
     this.load();
   }
