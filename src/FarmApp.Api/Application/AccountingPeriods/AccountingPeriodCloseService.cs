@@ -14,6 +14,14 @@ public class AccountingPeriodCloseService(
     ReportQueries reportQueries,
     IUnitOfWork uow) : IAccountingPeriodCloseService
 {
+    public async Task<AccountingPeriodDto> GetPeriodAsync(int year, int month, CancellationToken ct)
+    {
+        var period = await periodRepo.GetByYearMonthAsync(year, month, ct);
+        return period is null
+            ? new AccountingPeriodDto(0, year, month, AccountingPeriodStatus.Open.ToString(), null, null, null, null)
+            : ToDto(period);
+    }
+
     public async Task<CloseChecklistDto> GetCloseChecklistAsync(int year, int month, CancellationToken ct)
     {
         var periodStart = new DateTime(year, month, 1);

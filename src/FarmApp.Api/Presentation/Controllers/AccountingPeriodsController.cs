@@ -18,6 +18,10 @@ namespace FarmApp.Api.Presentation.Controllers;
 [Authorize(Policy = "CanManageMasterData")]
 public class AccountingPeriodsController(IAccountingPeriodCloseService service) : ApiControllerBase
 {
+    [HttpGet("{year:int}/{month:int}")]
+    public async Task<ActionResult<AccountingPeriodDto>> GetPeriod(int year, int month, CancellationToken ct)
+        => await service.GetPeriodAsync(year, month, ct);
+
     [HttpGet("{year:int}/{month:int}/checklist")]
     public async Task<ActionResult<CloseChecklistDto>> GetChecklist(int year, int month, CancellationToken ct)
         => Ok(await service.GetCloseChecklistAsync(year, month, ct));

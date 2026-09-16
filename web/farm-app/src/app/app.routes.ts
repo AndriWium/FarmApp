@@ -300,6 +300,14 @@ export const routes: Routes = [
           ).then((m) => m.MovementFormPageComponent),
       },
       {
+        path: 'accounting/month-end-close',
+        canActivate: [ownerGuard],
+        loadComponent: () =>
+          import(
+            './features/accounting-periods/month-end-close-page/month-end-close-page.component'
+          ).then((m) => m.MonthEndClosePageComponent),
+      },
+      {
         path: 'reports',
         canActivate: [ownerGuard],
         loadComponent: () =>

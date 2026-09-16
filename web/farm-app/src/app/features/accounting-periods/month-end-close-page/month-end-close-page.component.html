@@ -1,0 +1,183 @@
+<h1>Month-End Close</h1>
+<p class="hint">
+  Walk the close checklist for a month, then close it. Once closed, transactional writes dated
+  inside that month are rejected until it's reopened.
+</p>
+
+<label class="month-picker">
+  Month
+  <input
+    type="month"
+    [value]="selectedMonth()"
+    (change)="onMonthChange($any($event.target).value)"
+  />
+</label>
+
+@if (loading()) {
+  <p>Loading...</p>
+} @else if (loadError()) {
+  <p class="error">{{ loadError() }}</p>
+} @else if (period() && checklist()) {
+  <section class="period-status" [class.closed]="period()!.status === 'Closed'">
+    <h2>
+      {{ year() }}-{{ month() < 10 ? '0' + month() : month() }}
+      <span class="status-badge" [class.status-closed]="period()!.status === 'Closed'">
+        {{ period()!.status }}
+      </span>
+    </h2>
+    @if (period()!.status === 'Closed') {
+      <p>
+        Closed {{ period()!.closedAt | date: 'yyyy-MM-dd HH:mm' }} by {{ period()!.closedBy }}
+      </p>
+    }
+    @if (period()!.reopenedAt) {
+      <p class="reopened-note">
+        Reopened {{ period()!.reopenedAt | date: 'yyyy-MM-dd HH:mm' }} - "{{ period()!.reopenReason }}"
+      </p>
+    }
+  </section>
+
+  <h2>Close checklist</h2>
+  <ol class="checklist">
+    <li [class.pass]="checklist()!.tillSessionsAllClosed" [class.fail]="!checklist()!.tillSessionsAllClosed">
+      <div class="item-head">
+        <span class="badge">{{ checklist()!.tillSessionsAllClosed ? 'Pass' : 'Fail' }}</span>
+        <strong>All till sessions closed</strong>
+      </div>
+      @if (!checklist()!.tillSessionsAllClosed) {
+        <ul class="detail-list">
+          @for (s of checklist()!.openTillSessions; track s.tillSessionId) {
+            <li>
+              Till session #{{ s.tillSessionId }} at location #{{ s.locationId }} - opened
+              {{ s.openedAt | date: 'yyyy-MM-dd HH:mm' }}
+            </li>
+          }
+        </ul>
+      }
+    </li>
+
+    <li class="informational">
+      <div class="item-head">
+        <span class="badge badge-na">N/A</span>
+        <strong>No pending offline outbox items</strong>
+      </div>
+      <p class="detail-note">No offline sync exists yet in this app - nothing to check.</p>
+    </li>
+
+    <li class="informational">
+      <div class="item-head">
+        <span class="badge badge-info">{{ checklist()!.materialStockTakeVariances.length }}</span>
+        <strong>Stock take variances for review</strong>
+      </div>
+      @if (checklist()!.materialStockTakeVariances.length > 0) {
+        <ul class="detail-list">
+          @for (v of checklist()!.materialStockTakeVariances; track v.stockTakeLineId) {
+            <li>
+              Stock take #{{ v.stockTakeId }} ({{ v.date | date: 'yyyy-MM-dd' }}) - batch
+              #{{ v.stockBatchId }}: variance {{ v.variance | number: '1.0-3' }}
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="detail-note">No non-zero stock take variances this month.</p>
+      }
+    </li>
+
+    <li class="informational">
+      <div class="item-head">
+        <span
+          class="badge badge-info"
+        >{{ checklist()!.openSeasonsNeedingEstimate.length + checklist()!.closedSeasonsMissingTrueUp.length }}</span>
+        <strong>Season costs reviewed</strong>
+      </div>
+      @if (checklist()!.openSeasonsNeedingEstimate.length > 0) {
+        <p class="detail-note">Open seasons with no cost estimate yet:</p>
+        <ul class="detail-list">
+          @for (s of checklist()!.openSeasonsNeedingEstimate; track s.seasonId) {
+            <li>{{ s.name }}</li>
+          }
+        </ul>
+      }
+      @if (checklist()!.closedSeasonsMissingTrueUp.length > 0) {
+        <p class="detail-note">Closed seasons missing a true-up:</p>
+        <ul class="detail-list">
+          @for (s of checklist()!.closedSeasonsMissingTrueUp; track s.seasonId) {
+            <li>{{ s.name }} (ended {{ s.endDate | date: 'yyyy-MM-dd' }})</li>
+          }
+        </ul>
+      }
+      @if (checklist()!.openSeasonsNeedingEstimate.length === 0 && checklist()!.closedSeasonsMissingTrueUp.length === 0) {
+        <p class="detail-note">Nothing outstanding.</p>
+      }
+    </li>
+
+    <li class="informational">
+      <div class="item-head">
+        <span class="badge badge-info">{{ checklist()!.wastageEntriesForReview.length }}</span>
+        <strong>Wastage entries for review</strong>
+      </div>
+      @if (checklist()!.wastageEntriesForReview.length > 0) {
+        <ul class="detail-list">
+          @for (w of checklist()!.wastageEntriesForReview; track w.stockMovementId) {
+            <li>
+              {{ w.date | date: 'yyyy-MM-dd' }} - product #{{ w.productId }}: {{ w.qty | number: '1.0-3' }}
+              (R{{ w.value | number: '1.2-2' }})
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="detail-note">No wastage recorded this month.</p>
+      }
+    </li>
+  </ol>
+
+  @if (period()!.status === 'Open') {
+    <div class="close-action">
+      <button type="button" [disabled]="!checklist()!.canClose || closing()" (click)="closeMonth()">
+        {{ closing() ? 'Closing...' : 'Close Month' }}
+      </button>
+      @if (!checklist()!.canClose) {
+        <p class="error">{{ blockedReason() }}</p>
+      }
+      @if (closeError()) {
+        <p class="error">{{ closeError() }}</p>
+      }
+    </div>
+  } @else {
+    <div class="reopen-action">
+      @if (!showReopenForm()) {
+        <button type="button" (click)="showReopenForm.set(true)">Reopen this period</button>
+      } @else {
+        <form [formGroup]="reopenForm" (ngSubmit)="reopen()">
+          <label>
+            Reason (required)
+            <textarea formControlName="reason" maxlength="500" placeholder="Why is this period being reopened?"></textarea>
+          </label>
+          <div class="actions">
+            <button type="submit" [disabled]="reopenForm.invalid || reopening()">
+              {{ reopening() ? 'Reopening...' : 'Confirm reopen' }}
+            </button>
+            <button type="button" (click)="showReopenForm.set(false)">Cancel</button>
+          </div>
+          @if (reopenError()) {
+            <p class="error">{{ reopenError() }}</p>
+          }
+        </form>
+      }
+    </div>
+  }
+
+  @if (closeResult(); as result) {
+    <section class="close-confirmation">
+      <h2>Month closed</h2>
+      <p>
+        {{ result.period.year }}-{{ result.period.month < 10 ? '0' + result.period.month : result.period.month }}
+        closed {{ result.period.closedAt | date: 'yyyy-MM-dd HH:mm' }} by {{ result.period.closedBy }}.
+      </p>
+      <p class="hint">
+        Writes dated inside this month are now rejected until it's reopened. The checklist above
+        reflects the state at the moment of closing.
+      </p>
+    </section>
+  }
+}

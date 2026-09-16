@@ -8,6 +8,16 @@ namespace FarmApp.Api.Application.AccountingPeriods;
 /// mutation with a clear single implementation, not a read-only aggregation query.</summary>
 public interface IAccountingPeriodCloseService
 {
+    /// <summary>Read-only. Returns the real AccountingPeriodDto if a row exists for [year, month],
+    /// or a synthesized "Open, never closed" one (AccountingPeriodId 0, every closed/reopened
+    /// field null) if it doesn't - a period with no row is simply Open by construction (matches
+    /// CloseMonthAsync's own "create the row on first close" behavior), so there is nothing to
+    /// 404 on. Added for Phase 5f-2's month-end close screen: the UI needs to know a period's
+    /// current Open/Closed status up front (to decide whether to show Close or Reopen) without
+    /// having to attempt a close and infer it from a 409 - a genuine small gap in the Phase 4c
+    /// surface, closed here rather than routing the UI around it (see DECISIONS.md).</summary>
+    Task<AccountingPeriodDto> GetPeriodAsync(int year, int month, CancellationToken ct);
+
     /// <summary>Read-only - safe to call any number of times while deciding whether to close
     /// (matches ISeasonCostingService.PreviewCloseAsync's precedent). Never fails: an
     /// out-of-range year/month simply returns a checklist with nothing to show.</summary>
