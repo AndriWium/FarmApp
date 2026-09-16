@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
-import { BlockDto, CreateBlockRequest, UpdateBlockRequest } from './block.model';
+import { BlockDto, CreateBlockRequest, UpdateBlockRequest, WithholdingStatusDto } from './block.model';
 
 @Injectable({ providedIn: 'root' })
 export class BlocksApiService {
@@ -26,5 +26,14 @@ export class BlocksApiService {
 
   deactivate(id: number) {
     return this.http.delete<void>(`${this.url}/${id}`);
+  }
+
+  // Read-only pre-check (doc 05 §5, BlocksController.GetWithholdingStatus) - lets the harvest
+  // form warn about a chemical withholding lock BEFORE the farmer submits, not just on rejection.
+  // date is an ISO yyyy-MM-dd string (ASP.NET model-binds it straight to DateTime? server-side).
+  getWithholdingStatus(blockId: number, date: string) {
+    return this.http.get<WithholdingStatusDto>(`${this.url}/${blockId}/withholding-status`, {
+      params: { date },
+    });
   }
 }
