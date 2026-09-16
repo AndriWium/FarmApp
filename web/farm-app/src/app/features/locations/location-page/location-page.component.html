@@ -1,0 +1,77 @@
+<h1>Locations</h1>
+
+<label class="toggle">
+  <input type="checkbox" [checked]="showInactive()" (change)="toggleShowInactive()" />
+  Show inactive
+</label>
+
+@if (canManage()) {
+  <form class="inline-form" [formGroup]="createForm" (ngSubmit)="add()">
+    <input formControlName="name" placeholder="Location name (e.g. Farm store)" maxlength="50" />
+    <button type="submit" [disabled]="createForm.invalid">Add location</button>
+    @if (createForm.controls.name.invalid && createForm.controls.name.touched) {
+      <span class="error">Name is required (max 50 characters).</span>
+    }
+    @if (createError()) {
+      <span class="error">{{ createError() }}</span>
+    }
+  </form>
+}
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Status</th>
+      @if (canManage()) {
+        <th></th>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @for (location of locations(); track location.locationId) {
+      @if (editingId() === location.locationId) {
+        <tr [formGroup]="editForm">
+          <td><input formControlName="name" maxlength="50" /></td>
+          <td>
+            <label><input type="checkbox" formControlName="isActive" /> Active</label>
+          </td>
+          @if (canManage()) {
+            <td class="actions">
+              <button
+                type="button"
+                [disabled]="editForm.invalid"
+                (click)="saveEdit(location.locationId)"
+              >
+                Save
+              </button>
+              <button type="button" (click)="cancelEdit()">Cancel</button>
+              @if (editError()) {
+                <span class="error">{{ editError() }}</span>
+              }
+            </td>
+          }
+        </tr>
+      } @else {
+        <tr>
+          <td>{{ location.name }}</td>
+          <td [class]="location.isActive ? 'status-active' : 'status-inactive'">
+            {{ location.isActive ? 'Active' : 'Inactive' }}
+          </td>
+          @if (canManage()) {
+            <td class="actions">
+              <button type="button" (click)="startEdit(location)">Edit</button>
+              @if (location.isActive) {
+                <button type="button" (click)="deactivate(location)">Deactivate</button>
+              }
+            </td>
+          }
+        </tr>
+      }
+    } @empty {
+      <tr>
+        <td colspan="3">No locations yet.</td>
+      </tr>
+    }
+  </tbody>
+</table>
