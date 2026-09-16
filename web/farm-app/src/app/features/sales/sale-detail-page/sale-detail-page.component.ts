@@ -1,7 +1,10 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { extractErrorMessage } from '../../../shared/http-error.util';
 import { CustomerDto } from '../../customers/customer.model';
 import { CustomersApiService } from '../../customers/customers-api.service';
 import { GradeDto } from '../../grades/grade.model';
@@ -23,7 +26,7 @@ function round2(n: number): number {
  */
 @Component({
   selector: 'app-sale-detail-page',
-  imports: [DatePipe, DecimalPipe, RouterLink],
+  imports: [DatePipe, DecimalPipe, FormsModule, RouterLink],
   templateUrl: './sale-detail-page.component.html',
   styleUrl: './sale-detail-page.component.scss',
 })
@@ -120,5 +123,46 @@ export class SaleDetailPageComponent implements OnInit {
   customerName(id: number | null): string {
     if (id === null) return 'Walk-in (no customer)';
     return this.customersById().get(id)?.name ?? `#${id}`;
+  }
+
+  // --- Refund (Phase 5d-2) ---
+
+  // Two-step reveal (like the POS product picker's overlay) rather than a single confirm() - a
+  // refund is effectively irreversible from the cashier's point of view (task brief: "make sure
+  // they can't fat-finger it"), so a bare confirm() dialog with one click through it isn't enough
+  // friction. Opening the panel doesn't refund anything by itself; only "Confirm refund" below
+  // does.
+  confirmingRefund = signal(false);
+  refundReason = signal<string | null>(null);
+  refunding = signal(false);
+  refundError = signal('');
+
+  startRefund(): void {
+    this.confirmingRefund.set(true);
+    this.refundReason.set(null);
+    this.refundError.set('');
+  }
+
+  cancelRefund(): void {
+    this.confirmingRefund.set(false);
+  }
+
+  confirmRefund(): void {
+    const sale = this.sale();
+    if (!sale || sale.status !== 'Complete') return;
+
+    this.refunding.set(true);
+    this.refundError.set('');
+    this.salesApi.refund(sale.saleId, { reason: this.refundReason() }).subscribe({
+      next: (updated) => {
+        this.refunding.set(false);
+        this.confirmingRefund.set(false);
+        this.sale.set(updated);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.refunding.set(false);
+        this.refundError.set(extractErrorMessage(err));
+      },
+    });
   }
 }

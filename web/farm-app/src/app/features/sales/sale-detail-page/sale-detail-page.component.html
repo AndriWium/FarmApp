@@ -81,5 +81,43 @@
       </tr>
     </tfoot>
   </table>
+
+  @if (sale.status === 'Complete') {
+    <section class="refund-section">
+      @if (!confirmingRefund()) {
+        <button type="button" class="danger" (click)="startRefund()">Refund this sale</button>
+      } @else {
+        <div class="refund-confirm">
+          <h2>Confirm refund</h2>
+          <p class="warning">
+            This will restore the stock this sale depleted and mark it <strong>Refunded</strong>. It does not
+            reverse any payment - actually refunding the customer's money happens on the card machine, outside
+            this system. This cannot be undone from here.
+          </p>
+          <label>
+            Reason (optional)
+            <input
+              type="text"
+              maxlength="500"
+              [ngModel]="refundReason()"
+              (ngModelChange)="refundReason.set($event || null)"
+              name="refundReason"
+            />
+          </label>
+          <div class="refund-actions">
+            <button type="button" class="secondary" (click)="cancelRefund()" [disabled]="refunding()">
+              Cancel
+            </button>
+            <button type="button" class="danger" (click)="confirmRefund()" [disabled]="refunding()">
+              {{ refunding() ? 'Refunding...' : 'Confirm refund' }}
+            </button>
+          </div>
+          @if (refundError()) {
+            <p class="error">{{ refundError() }}</p>
+          }
+        </div>
+      }
+    </section>
+  }
   }
 }

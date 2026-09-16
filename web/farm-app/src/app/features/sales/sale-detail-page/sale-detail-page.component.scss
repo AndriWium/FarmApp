@@ -44,3 +44,71 @@ h2 {
 .payments-table {
   max-width: 360px;
 }
+
+.refund-section {
+  margin-top: 2rem;
+}
+
+button.danger {
+  padding: 0.55rem 1rem;
+  border: 1px solid #b3261e;
+  border-radius: 6px;
+  background: #b3261e;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+
+  &:disabled {
+    background: #d99a95;
+    border-color: #d99a95;
+    cursor: not-allowed;
+  }
+}
+
+button.secondary {
+  padding: 0.55rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.refund-confirm {
+  max-width: 480px;
+  padding: 1.2rem;
+  border: 1px solid #f1a9a0;
+  border-radius: 10px;
+  background: #fdecea;
+
+  h2 {
+    margin: 0 0 0.6rem;
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin: 0.8rem 0;
+    font-size: 0.9rem;
+  }
+
+  input {
+    padding: 0.55rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font: inherit;
+  }
+}
+
+.warning {
+  font-size: 0.9rem;
+  color: #7a1f18;
+  margin: 0;
+}
+
+.refund-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
