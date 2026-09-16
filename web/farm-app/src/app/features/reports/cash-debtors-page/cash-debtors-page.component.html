@@ -1,0 +1,163 @@
+<h1>Cash &amp; Debtors</h1>
+
+<div class="filters">
+  <label>
+    From
+    <input type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" />
+  </label>
+  <label>
+    To
+    <input type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" />
+  </label>
+  <button type="button" (click)="load()">Refresh</button>
+</div>
+
+@if (loading()) {
+  <p class="hint">Loading cash &amp; debtors reports...</p>
+} @else if (error()) {
+  <p class="error">{{ error() }}</p>
+} @else {
+  <section>
+    <h2>Till Sessions: Over / Short</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Location</th>
+          <th>Opened</th>
+          <th>Closed</th>
+          <th>Opened By</th>
+          <th>System Card Total</th>
+          <th>Card Machine Batch Total</th>
+          <th>Difference</th>
+          <th>Note</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (s of sortedTillSessions(); track s.tillSessionId) {
+          <tr>
+            <td>{{ locationName(s.locationId) }}</td>
+            <td>{{ s.openedAt | date: 'yyyy-MM-dd HH:mm' }}</td>
+            <td>{{ s.closedAt | date: 'yyyy-MM-dd HH:mm' }}</td>
+            <td>User #{{ s.openedBy }}</td>
+            <td>{{ s.systemCardTotal === null ? '-' : (s.systemCardTotal | number: '1.2-2') }}</td>
+            <td>{{ s.cardMachineBatchTotal === null ? '-' : (s.cardMachineBatchTotal | number: '1.2-2') }}</td>
+            <td
+              class="diff"
+              [class.positive]="s.difference !== null && s.difference > 0"
+              [class.negative]="s.difference !== null && s.difference < 0"
+            >
+              {{ s.difference === null ? '-' : (s.difference > 0 ? '+' : '') + (s.difference | number: '1.2-2') }}
+            </td>
+            <td>{{ s.differenceNote ?? '-' }}</td>
+            <td>
+              <a [routerLink]="['/sales']" [queryParams]="{ tillSessionId: s.tillSessionId }">View sales &rarr;</a>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="9">No closed till sessions in this period.</td>
+          </tr>
+        }
+      </tbody>
+      @if (tillSessions().length > 0) {
+        <tfoot>
+          <tr>
+            <td colspan="6">Total difference</td>
+            <td class="diff" [class.positive]="totalDifference() > 0" [class.negative]="totalDifference() < 0">
+              {{ totalDifference() > 0 ? '+' : '' }}{{ totalDifference() | number: '1.2-2' }}
+            </td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      }
+    </table>
+  </section>
+
+  <section>
+    <h2>Cash Flow Summary</h2>
+    @if (cashFlow(); as cf) {
+      <table class="statement">
+        <tbody>
+          <tr class="section-head"><td colspan="2">Cash in</td></tr>
+          <tr class="indent">
+            <td>Card / EFT sales</td>
+            <td>{{ cf.cashInCardEft | number: '1.2-2' }}</td>
+          </tr>
+          <tr class="indent">
+            <td>Debtor payments</td>
+            <td>{{ cf.cashInDebtorPayments | number: '1.2-2' }}</td>
+          </tr>
+          <tr class="subtotal">
+            <td>Total cash in</td>
+            <td>{{ cf.cashIn | number: '1.2-2' }}</td>
+          </tr>
+          <tr class="section-head"><td colspan="2">Cash out</td></tr>
+          <tr class="indent">
+            <td>Expenses</td>
+            <td>({{ cf.cashOutExpenses | number: '1.2-2' }})</td>
+          </tr>
+          <tr class="indent">
+            <td>Produce &amp; input purchases</td>
+            <td>({{ cf.cashOutPurchases | number: '1.2-2' }})</td>
+          </tr>
+          <tr class="subtotal">
+            <td>Total cash out</td>
+            <td>({{ cf.cashOut | number: '1.2-2' }})</td>
+          </tr>
+          <tr class="total" [class.negative]="cf.net < 0">
+            <td>Net</td>
+            <td>{{ cf.net | number: '1.2-2' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="hint">
+        "Cash" here means card/EFT and account movement - this farm takes no physical cash at the till (card-only
+        POS).
+      </p>
+    }
+  </section>
+
+  <section>
+    <h2>Debtors Aging <span class="hint">(as of today)</span></h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Customer</th>
+          <th>Current</th>
+          <th>30 Days</th>
+          <th>60 Days</th>
+          <th>90+ Days</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (d of debtors(); track d.customerId) {
+          <tr>
+            <td>{{ d.customerName }}</td>
+            <td>{{ d.current | number: '1.2-2' }}</td>
+            <td>{{ d.days30 | number: '1.2-2' }}</td>
+            <td [class.aging-warn]="d.days60 > 0">{{ d.days60 | number: '1.2-2' }}</td>
+            <td [class.aging-danger]="d.days90Plus > 0">{{ d.days90Plus | number: '1.2-2' }}</td>
+            <td class="total-col">{{ d.total | number: '1.2-2' }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6">No outstanding debtors.</td>
+          </tr>
+        }
+      </tbody>
+      @if (debtors().length > 0) {
+        <tfoot>
+          <tr>
+            <td colspan="5">Total outstanding</td>
+            <td class="total-col">{{ totalDebtors() | number: '1.2-2' }}</td>
+          </tr>
+        </tfoot>
+      }
+    </table>
+    @if (totalDays60Plus() > 0) {
+      <p class="error">{{ totalDays60Plus() | number: '1.2-2' }} is 60+ days overdue across all debtors.</p>
+    }
+  </section>
+}
