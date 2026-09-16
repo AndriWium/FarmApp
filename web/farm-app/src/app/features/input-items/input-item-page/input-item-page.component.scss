@@ -1,0 +1,10 @@
+@use '../../../shared/styles/list-page';
+
+.chemical-fields {
+  display: inline-flex;
+  gap: 0.6rem;
+}
+
+.de-emphasized {
+  opacity: 0.5;
+}

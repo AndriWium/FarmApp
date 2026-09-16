@@ -1,0 +1,131 @@
+<h1>Input Items</h1>
+
+<label class="toggle">
+  <input type="checkbox" [checked]="showInactive()" (change)="toggleShowInactive()" />
+  Show inactive
+</label>
+
+@if (canManage()) {
+  <form class="inline-form" [formGroup]="createForm" (ngSubmit)="add()">
+    <input formControlName="name" placeholder="Item name" maxlength="100" />
+    <select formControlName="category">
+      @for (cat of categories; track cat) {
+        <option [value]="cat">{{ cat }}</option>
+      }
+    </select>
+    <input formControlName="unit" placeholder="Unit (e.g. kg, L)" maxlength="20" />
+    <input formControlName="reorderLevel" type="number" step="0.01" placeholder="Reorder level" />
+    <span
+      class="chemical-fields"
+      [class.de-emphasized]="createForm.controls.category.value !== 'Chemical'"
+    >
+      <input
+        formControlName="withholdingDays"
+        type="number"
+        min="0"
+        placeholder="Withholding days"
+      />
+      <input formControlName="activeIngredient" placeholder="Active ingredient" maxlength="100" />
+    </span>
+    <button type="submit" [disabled]="createForm.invalid">Add item</button>
+    @if (createForm.controls.category.value !== 'Chemical') {
+      <span class="hint">Withholding days / active ingredient only matter for Chemical items.</span>
+    }
+    @if (createForm.controls.name.invalid && createForm.controls.name.touched) {
+      <span class="error">Name is required (max 100 characters).</span>
+    }
+    @if (createForm.controls.unit.invalid && createForm.controls.unit.touched) {
+      <span class="error">Unit is required (max 20 characters).</span>
+    }
+    @if (createError()) {
+      <span class="error">{{ createError() }}</span>
+    }
+  </form>
+}
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Category</th>
+      <th>Unit</th>
+      <th>Reorder Level</th>
+      <th>Withholding Days</th>
+      <th>Active Ingredient</th>
+      <th>Status</th>
+      @if (canManage()) {
+        <th></th>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @for (item of items(); track item.inputItemId) {
+      @if (editingId() === item.inputItemId) {
+        <tr [formGroup]="editForm">
+          <td><input formControlName="name" maxlength="100" /></td>
+          <td>
+            <select formControlName="category">
+              @for (cat of categories; track cat) {
+                <option [value]="cat">{{ cat }}</option>
+              }
+            </select>
+          </td>
+          <td><input formControlName="unit" maxlength="20" /></td>
+          <td><input formControlName="reorderLevel" type="number" step="0.01" /></td>
+          <td [class.de-emphasized]="editForm.controls.category.value !== 'Chemical'">
+            <input formControlName="withholdingDays" type="number" min="0" />
+          </td>
+          <td [class.de-emphasized]="editForm.controls.category.value !== 'Chemical'">
+            <input formControlName="activeIngredient" maxlength="100" />
+          </td>
+          <td>
+            <label><input type="checkbox" formControlName="isActive" /> Active</label>
+          </td>
+          @if (canManage()) {
+            <td class="actions">
+              <button
+                type="button"
+                [disabled]="editForm.invalid"
+                (click)="saveEdit(item.inputItemId)"
+              >
+                Save
+              </button>
+              <button type="button" (click)="cancelEdit()">Cancel</button>
+              @if (editError()) {
+                <span class="error">{{ editError() }}</span>
+              }
+            </td>
+          }
+        </tr>
+      } @else {
+        <tr>
+          <td>{{ item.name }}</td>
+          <td>{{ item.category }}</td>
+          <td>{{ item.unit }}</td>
+          <td>{{ item.reorderLevel }}</td>
+          <td [class.de-emphasized]="item.category !== 'Chemical'">
+            {{ item.withholdingDays ?? '-' }}
+          </td>
+          <td [class.de-emphasized]="item.category !== 'Chemical'">
+            {{ item.activeIngredient ?? '-' }}
+          </td>
+          <td [class]="item.isActive ? 'status-active' : 'status-inactive'">
+            {{ item.isActive ? 'Active' : 'Inactive' }}
+          </td>
+          @if (canManage()) {
+            <td class="actions">
+              <button type="button" (click)="startEdit(item)">Edit</button>
+              @if (item.isActive) {
+                <button type="button" (click)="deactivate(item)">Deactivate</button>
+              }
+            </td>
+          }
+        </tr>
+      }
+    } @empty {
+      <tr>
+        <td colspan="8">No input items yet.</td>
+      </tr>
+    }
+  </tbody>
+</table>
