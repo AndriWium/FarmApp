@@ -1,0 +1,135 @@
+// Shared look for the master-data list+form screens (Phase 5b). Not a component on its own -
+// each <entity>-page component pulls this in with `@use '.../shared/styles/list-page';` so the
+// six screens read as one system instead of six slightly-different hand-rolled tables.
+
+h1 {
+  margin-bottom: 1rem;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+  padding: 0.9rem;
+  background: #f7f9f7;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+
+  input,
+  select,
+  textarea {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font: inherit;
+  }
+
+  textarea {
+    min-width: 240px;
+    min-height: 2.4rem;
+  }
+
+  label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.9rem;
+  }
+
+  button[type='submit'] {
+    padding: 0.45rem 0.9rem;
+    border: 1px solid #2f6b3a;
+    border-radius: 4px;
+    background: #2f6b3a;
+    color: #fff;
+    cursor: pointer;
+
+    &:disabled {
+      background: #9fb8a3;
+      border-color: #9fb8a3;
+      cursor: not-allowed;
+    }
+  }
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.5rem 0.7rem;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+  }
+
+  th {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #666;
+  }
+
+  input,
+  select,
+  textarea {
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font: inherit;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+
+  button {
+    padding: 0.3rem 0.7rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+
+    &:hover {
+      background: #f2f2f2;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+}
+
+.error {
+  color: #b3261e;
+  font-size: 0.85rem;
+}
+
+.hint {
+  color: #777;
+  font-size: 0.8rem;
+}
+
+.status-active {
+  color: #2f6b3a;
+}
+
+.status-inactive {
+  color: #999;
+}
