@@ -77,6 +77,20 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'pack-sizes',
+        loadComponent: () =>
+          import('./features/pack-sizes/pack-size-page/pack-size-page.component').then(
+            (m) => m.PackSizePageComponent,
+          ),
+      },
+      {
+        path: 'customers',
+        loadComponent: () =>
+          import('./features/customers/customer-page/customer-page.component').then(
+            (m) => m.CustomerPageComponent,
+          ),
+      },
+      {
         path: 'expense-categories',
         loadComponent: () =>
           import(
@@ -90,7 +104,6 @@ export const routes: Routes = [
             (m) => m.ActivityTypePageComponent,
           ),
       },
-      // Phase 5b-2 (rest) adds: pack sizes, customers (same pattern as above).
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

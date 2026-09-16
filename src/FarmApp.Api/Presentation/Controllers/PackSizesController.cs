@@ -6,8 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FarmApp.Api.Presentation.Controllers;
 
+// Explicit kebab-case route - same [controller]-token mismatch and fix as PriceListsController
+// (see its comment); found and fixed together while wiring up this phase's two-word-named entities.
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/pack-sizes")]
 public class PackSizesController(IPackSizeService service) : ApiControllerBase
 {
     [HttpGet]
