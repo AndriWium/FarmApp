@@ -2,14 +2,17 @@ h1 {
   margin-bottom: 1rem;
 }
 
+.hint,
+.error {
+  font-size: 0.9rem;
+}
+
 .hint {
   color: #777;
-  font-size: 0.9rem;
 }
 
 .error {
   color: #b3261e;
-  font-size: 0.9rem;
 }
 
 .gate {
@@ -40,14 +43,19 @@ h1 {
   }
 }
 
-.open-form {
-  padding: 1rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-
-  h2 {
-    margin: 0 0 0.8rem;
-    font-size: 1rem;
+// Shared control look for every form-ish panel below (open-form/picker/checkout) - one rule
+// instead of four near-identical copies.
+.open-form,
+.picker,
+.checkout,
+.receipt {
+  select,
+  input[type='text'],
+  input[type='number'] {
+    padding: 0.55rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font: inherit;
   }
 
   label {
@@ -57,12 +65,16 @@ h1 {
     margin-bottom: 0.8rem;
     font-size: 0.9rem;
   }
+}
 
-  select {
-    padding: 0.5rem 0.6rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font: inherit;
+.open-form {
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+
+  h2 {
+    margin: 0 0 0.8rem;
+    font-size: 1rem;
   }
 }
 
@@ -109,13 +121,6 @@ button {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.9rem;
-
-  select {
-    padding: 0.3rem 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font: inherit;
-  }
 }
 
 .pos-layout {
@@ -186,7 +191,6 @@ h2 {
 
 .basket-table {
   width: 100%;
-  min-width: 480px;
   border-collapse: collapse;
   font-size: 0.9rem;
 
@@ -245,32 +249,12 @@ h2 {
   h2 {
     margin: 0;
   }
-
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    font-size: 0.9rem;
-  }
-
-  select,
-  input {
-    padding: 0.55rem 0.6rem;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font: inherit;
-  }
 }
 
 .picker-actions {
   display: flex;
   gap: 0.6rem;
   justify-content: flex-end;
-
-  button.secondary {
-    background: #fff;
-    color: #2f6b3a;
-  }
 }
 
 tr.short {
@@ -285,23 +269,6 @@ tr.short {
   border: 1px solid #e0e0e0;
   border-radius: 10px;
   background: #fff;
-
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    margin-bottom: 0.9rem;
-    font-size: 0.9rem;
-  }
-
-  select,
-  input[type='text'],
-  input[type='number'] {
-    padding: 0.5rem 0.6rem;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font: inherit;
-  }
 
   h3 {
     font-size: 0.9rem;
