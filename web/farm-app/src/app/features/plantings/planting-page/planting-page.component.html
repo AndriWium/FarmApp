@@ -1,0 +1,119 @@
+<h1>Plantings</h1>
+
+@if (blocks().length === 0 || cultivars().length === 0) {
+  <p class="hint">
+    Add at least one Block and one Cultivar first before recording a planting.
+  </p>
+}
+
+<form class="inline-form" [formGroup]="createForm" (ngSubmit)="add()">
+  <select formControlName="blockId">
+    <option [ngValue]="0">Select a block...</option>
+    @for (block of blocks(); track block.blockId) {
+      <option [ngValue]="block.blockId">{{ blockName(block.blockId) }}</option>
+    }
+  </select>
+  <select formControlName="cultivarId">
+    <option [ngValue]="0">Select a cultivar...</option>
+    @for (cultivar of cultivars(); track cultivar.cultivarId) {
+      <option [ngValue]="cultivar.cultivarId">{{ cultivarLabel(cultivar.cultivarId) }}</option>
+    }
+  </select>
+  <label>
+    Start date
+    <input formControlName="startDate" type="date" />
+  </label>
+  <label>
+    End date (optional)
+    <input formControlName="endDate" type="date" />
+  </label>
+  <select formControlName="type">
+    @for (t of types; track t) {
+      <option [value]="t">{{ t }}</option>
+    }
+  </select>
+  <input formControlName="plantCount" type="number" step="1" min="1" placeholder="Plant count (optional)" />
+  <input formControlName="notes" placeholder="Notes (optional)" maxlength="500" />
+  <button type="submit" [disabled]="createForm.invalid">Add planting</button>
+  @if (createForm.controls.blockId.invalid && createForm.controls.blockId.touched) {
+    <span class="error">Select a block.</span>
+  }
+  @if (createForm.controls.cultivarId.invalid && createForm.controls.cultivarId.touched) {
+    <span class="error">Select a cultivar.</span>
+  }
+  @if (createError()) {
+    <span class="error">{{ createError() }}</span>
+  }
+</form>
+
+<table>
+  <thead>
+    <tr>
+      <th>Block</th>
+      <th>Cultivar</th>
+      <th>Start Date</th>
+      <th>End Date</th>
+      <th>Type</th>
+      <th>Plant Count</th>
+      <th>Notes</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (planting of plantings(); track planting.plantingId) {
+      @if (editingId() === planting.plantingId) {
+        <tr [formGroup]="editForm">
+          <td>
+            <select formControlName="blockId">
+              @for (block of blocks(); track block.blockId) {
+                <option [ngValue]="block.blockId">{{ blockName(block.blockId) }}</option>
+              }
+            </select>
+          </td>
+          <td>
+            <select formControlName="cultivarId">
+              @for (cultivar of cultivars(); track cultivar.cultivarId) {
+                <option [ngValue]="cultivar.cultivarId">{{ cultivarLabel(cultivar.cultivarId) }}</option>
+              }
+            </select>
+          </td>
+          <td><input formControlName="startDate" type="date" /></td>
+          <td><input formControlName="endDate" type="date" /></td>
+          <td>
+            <select formControlName="type">
+              @for (t of types; track t) {
+                <option [value]="t">{{ t }}</option>
+              }
+            </select>
+          </td>
+          <td><input formControlName="plantCount" type="number" step="1" min="1" /></td>
+          <td><input formControlName="notes" maxlength="500" /></td>
+          <td class="actions">
+            <button type="button" [disabled]="editForm.invalid" (click)="saveEdit(planting.plantingId)">Save</button>
+            <button type="button" (click)="cancelEdit()">Cancel</button>
+            @if (editError()) {
+              <span class="error">{{ editError() }}</span>
+            }
+          </td>
+        </tr>
+      } @else {
+        <tr>
+          <td>{{ blockName(planting.blockId) }}</td>
+          <td>{{ cultivarLabel(planting.cultivarId) }}</td>
+          <td>{{ planting.startDate.slice(0, 10) }}</td>
+          <td>{{ planting.endDate ? planting.endDate.slice(0, 10) : '-' }}</td>
+          <td>{{ planting.type }}</td>
+          <td>{{ planting.plantCount ?? '-' }}</td>
+          <td>{{ planting.notes || '-' }}</td>
+          <td class="actions">
+            <button type="button" (click)="startEdit(planting)">Edit</button>
+          </td>
+        </tr>
+      }
+    } @empty {
+      <tr>
+        <td colspan="8">No plantings recorded yet.</td>
+      </tr>
+    }
+  </tbody>
+</table>

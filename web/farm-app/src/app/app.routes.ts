@@ -49,6 +49,20 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'plantings',
+        loadComponent: () =>
+          import('./features/plantings/planting-page/planting-page.component').then(
+            (m) => m.PlantingPageComponent,
+          ),
+      },
+      {
+        path: 'seasons',
+        loadComponent: () =>
+          import('./features/seasons/season-page/season-page.component').then(
+            (m) => m.SeasonPageComponent,
+          ),
+      },
+      {
         path: 'input-items',
         loadComponent: () =>
           import('./features/input-items/input-item-page/input-item-page.component').then(

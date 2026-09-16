@@ -1,0 +1,118 @@
+<h1>Seasons</h1>
+
+@if (plantings().length === 0) {
+  <p class="hint">Add at least one Planting first before recording a season.</p>
+}
+
+<form class="inline-form" [formGroup]="createForm" (ngSubmit)="add()">
+  <select formControlName="plantingId">
+    <option [ngValue]="0">Select a planting...</option>
+    @for (planting of plantings(); track planting.plantingId) {
+      <option [ngValue]="planting.plantingId">{{ plantingLabel(planting.plantingId) }}</option>
+    }
+  </select>
+  <input formControlName="name" placeholder="Season name" maxlength="50" />
+  <label>
+    Start date
+    <input formControlName="startDate" type="date" />
+  </label>
+  <label>
+    End date
+    <input formControlName="endDate" type="date" />
+  </label>
+  <input
+    formControlName="expectedTotalCost"
+    type="number"
+    step="0.01"
+    min="0"
+    placeholder="Expected total cost (optional)"
+  />
+  <input
+    formControlName="expectedYieldKg"
+    type="number"
+    step="0.001"
+    min="0.001"
+    placeholder="Expected yield (kg, optional)"
+  />
+  <span class="hint">Est. cost/kg: {{ createEstimatePreview() !== null ? (createEstimatePreview() | number: '1.2-2') : '-' }}</span>
+  <button type="submit" [disabled]="createForm.invalid">Add season</button>
+  @if (createForm.controls.plantingId.invalid && createForm.controls.plantingId.touched) {
+    <span class="error">Select a planting.</span>
+  }
+  @if (createForm.controls.name.invalid && createForm.controls.name.touched) {
+    <span class="error">Name is required (max 50 characters).</span>
+  }
+  @if (createForm.controls.endDate.invalid && createForm.controls.endDate.touched) {
+    <span class="error">End date is required.</span>
+  }
+  @if (createError()) {
+    <span class="error">{{ createError() }}</span>
+  }
+</form>
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Planting</th>
+      <th>Start Date</th>
+      <th>End Date</th>
+      <th>Expected Total Cost</th>
+      <th>Expected Yield (kg)</th>
+      <th>Est. Cost/Kg</th>
+      <th>Status</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (season of seasons(); track season.seasonId) {
+      @if (editingId() === season.seasonId) {
+        <tr [formGroup]="editForm">
+          <td><input formControlName="name" maxlength="50" /></td>
+          <td>
+            <select formControlName="plantingId">
+              @for (planting of plantings(); track planting.plantingId) {
+                <option [ngValue]="planting.plantingId">{{ plantingLabel(planting.plantingId) }}</option>
+              }
+            </select>
+          </td>
+          <td><input formControlName="startDate" type="date" /></td>
+          <td><input formControlName="endDate" type="date" /></td>
+          <td><input formControlName="expectedTotalCost" type="number" step="0.01" min="0" /></td>
+          <td><input formControlName="expectedYieldKg" type="number" step="0.001" min="0.001" /></td>
+          <td>{{ editEstimatePreview() !== null ? (editEstimatePreview() | number: '1.2-2') : '-' }}</td>
+          <td [class]="season.status === 'Open' ? 'status-active' : 'status-inactive'">{{ season.status }}</td>
+          <td class="actions">
+            <button type="button" [disabled]="editForm.invalid" (click)="saveEdit(season.seasonId)">Save</button>
+            <button type="button" (click)="cancelEdit()">Cancel</button>
+            @if (editError()) {
+              <span class="error">{{ editError() }}</span>
+            }
+          </td>
+        </tr>
+      } @else {
+        <tr>
+          <td>{{ season.name }}</td>
+          <td>{{ plantingLabel(season.plantingId) }}</td>
+          <td>{{ season.startDate.slice(0, 10) }}</td>
+          <td>{{ season.endDate.slice(0, 10) }}</td>
+          <td>{{ season.expectedTotalCost !== null ? (season.expectedTotalCost | number: '1.2-2') : '-' }}</td>
+          <td>{{ season.expectedYieldKg !== null ? (season.expectedYieldKg | number: '1.0-3') : '-' }}</td>
+          <td>{{ season.estimatedCostPerKg !== null ? (season.estimatedCostPerKg | number: '1.2-2') : '-' }}</td>
+          <td [class]="season.status === 'Open' ? 'status-active' : 'status-inactive'">{{ season.status }}</td>
+          <td class="actions">
+            @if (season.status === 'Open') {
+              <button type="button" (click)="startEdit(season)">Edit</button>
+            } @else {
+              <span class="hint">Closed - true-up posted, no further edits.</span>
+            }
+          </td>
+        </tr>
+      }
+    } @empty {
+      <tr>
+        <td colspan="9">No seasons recorded yet.</td>
+      </tr>
+    }
+  </tbody>
+</table>
