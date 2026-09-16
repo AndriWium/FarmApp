@@ -1,0 +1,60 @@
+<p><a routerLink="/activities">&larr; Back to activities</a></p>
+
+@if (loading()) {
+  <p>Loading...</p>
+} @else if (notFound()) {
+  <p class="error">Activity not found.</p>
+} @else {
+  <!-- Deliberately a plain @if nested inside @else, not `@else if (activity(); as a)` - see
+  DECISIONS.md Phase 5d-2 for the Angular control-flow bug that pattern hits. -->
+  @if (activity(); as a) {
+    <h1>Activity #{{ a.activityId }}</h1>
+
+    <dl class="detail-grid">
+      <dt>Season</dt>
+      <dd>{{ seasonLabel(a.seasonId) }}</dd>
+      <dt>Activity Type</dt>
+      <dd>{{ activityTypeName(a.activityTypeId) }}</dd>
+      <dt>Date</dt>
+      <dd>{{ a.date | date: 'yyyy-MM-dd' }}</dd>
+      <dt>Labour Hours</dt>
+      <dd>{{ a.labourHours }}</dd>
+      <dt>Labour Cost</dt>
+      <dd>{{ a.labourCost | number: '1.2-2' }}</dd>
+      <dt>Notes</dt>
+      <dd>{{ a.notes || '-' }}</dd>
+    </dl>
+
+    <h2>Input lines</h2>
+    @if (a.inputs.length === 0) {
+      <p class="hint">No input stock was consumed by this activity.</p>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Input Item</th>
+            <th>Qty consumed</th>
+            <th>Unit Cost (at consumption)</th>
+            <th>On hand now</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of a.inputs; track line.activityInputId) {
+            <tr>
+              <td>{{ inputItemName(line.inputItemId) }}</td>
+              <td>{{ line.qty }} {{ inputItemUnit(line.inputItemId) }}</td>
+              <td>{{ line.unitCost | number: '1.2-2' }}</td>
+              <td>
+                @if (onHandByItemId().has(line.inputItemId)) {
+                  {{ onHandByItemId().get(line.inputItemId) }} {{ inputItemUnit(line.inputItemId) }}
+                } @else {
+                  loading...
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  }
+}

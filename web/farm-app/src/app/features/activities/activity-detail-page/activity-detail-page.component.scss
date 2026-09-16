@@ -1,0 +1,17 @@
+@use '../../../shared/styles/list-page';
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1rem;
+  margin-bottom: 1.5rem;
+
+  dt {
+    color: #666;
+    font-size: 0.85rem;
+  }
+
+  dd {
+    margin: 0;
+  }
+}

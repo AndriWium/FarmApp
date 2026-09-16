@@ -1,0 +1,49 @@
+<h1>Activities</h1>
+<p class="hint">The activity diary - every spray, fertilising, irrigation, and other field task logged per season.</p>
+
+<p><a routerLink="/activities/new">+ Record an activity</a></p>
+
+<form class="inline-form">
+  <label>
+    Season
+    <select [ngModel]="seasonFilter()" (ngModelChange)="seasonFilter.set($event)" name="seasonFilter">
+      <option [ngValue]="0">All seasons</option>
+      @for (season of seasons(); track season.seasonId) {
+        <option [ngValue]="season.seasonId">{{ seasonLabel(season.seasonId) }}</option>
+      }
+    </select>
+  </label>
+</form>
+
+@if (loading()) {
+  <p>Loading...</p>
+} @else {
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Season</th>
+        <th>Activity Type</th>
+        <th>Labour Hours</th>
+        <th>Labour Cost</th>
+        <th>Input Lines</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (activity of filteredActivities(); track activity.activityId) {
+        <tr>
+          <td><a [routerLink]="['/activities', activity.activityId]">{{ activity.date | date: 'yyyy-MM-dd' }}</a></td>
+          <td>{{ seasonLabel(activity.seasonId) }}</td>
+          <td>{{ activityTypeName(activity.activityTypeId) }}</td>
+          <td>{{ activity.labourHours }}</td>
+          <td>{{ activity.labourCost }}</td>
+          <td>{{ inputCount(activity) }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="6">No activities recorded yet.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

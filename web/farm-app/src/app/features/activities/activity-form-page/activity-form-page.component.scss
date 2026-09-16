@@ -1,0 +1,54 @@
+@use '../../../shared/styles/list-page';
+
+.form-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin: 1rem 0;
+
+  button {
+    padding: 0.45rem 0.9rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+
+    &:hover {
+      background: #f2f2f2;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+
+  button:last-child {
+    border-color: #2f6b3a;
+    background: #2f6b3a;
+    color: #fff;
+
+    &:disabled {
+      background: #9fb8a3;
+      border-color: #9fb8a3;
+    }
+  }
+}
+
+.success {
+  margin-top: 1.5rem;
+  padding: 0.9rem;
+  border: 1px solid #b7d7bb;
+  border-radius: 6px;
+  background: #f2f9f2;
+}
+
+tr.insufficient td {
+  background: #fdecea;
+}
+
+tr.insufficient-note td {
+  color: #b3261e;
+  font-size: 0.85rem;
+  padding-top: 0;
+  border-bottom: 1px solid #eee;
+}
