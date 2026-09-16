@@ -21,4 +21,13 @@ public interface IActivityInputRepository
     /// filter down to one block - matching ISalePaymentRepository's "the repository owns the
     /// query whose primary entity it aggregates" precedent (see DECISIONS.md, Phase 2b).</summary>
     Task<List<ChemicalSprayRow>> GetChemicalSpraysForBlockAsync(int blockId, CancellationToken ct);
+
+    /// <summary>Σ(Qty x UnitCost) across every ActivityInput whose Activity belongs to the
+    /// season - the input-cost half of ISeasonCostingService's actual season cost (doc 09; the
+    /// other half, direct labour, is IActivityRepository's, since Activity is its own aggregate
+    /// there). Lives here rather than on IActivityRepository because ActivityInput (with its
+    /// already-snapshotted UnitCost) is the primary aggregate being summed, matching
+    /// GetChemicalSpraysForBlockAsync's own precedent one line up. Returns 0 for a season with no
+    /// activity inputs yet, never null.</summary>
+    Task<decimal> GetTotalInputCostForSeasonAsync(int seasonId, CancellationToken ct);
 }

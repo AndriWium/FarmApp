@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using FarmApp.Domain.Entities;
+using FarmApp.Domain.Services;
 
 namespace FarmApp.Domain.Repositories;
 
@@ -28,4 +29,12 @@ public interface IStockBatchRepository
     /// same order within CreateHarvestAsync's loop (see DECISIONS.md for this limitation).</summary>
     Task<List<TResult>> GetByHarvestIdAsync<TResult>(
         int harvestId, Expression<Func<StockBatch, TResult>> selector, CancellationToken ct);
+
+    /// <summary>QtyIn/UnitCost for every StockBatch created by any Harvest belonging to the given
+    /// season - what ISeasonCostingService needs to compute the season-close true-up per batch
+    /// (doc 09), honouring a mid-season estimate change exactly rather than blending one
+    /// season-wide estimate. Returns the shape the Domain calculator already consumes
+    /// (HarvestBatchCost) rather than a generic selector - every caller of this specific query
+    /// wants exactly these two fields.</summary>
+    Task<List<HarvestBatchCost>> GetHarvestBatchesBySeasonIdAsync(int seasonId, CancellationToken ct);
 }

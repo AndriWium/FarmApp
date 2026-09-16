@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using FarmApp.Domain.Entities;
 using FarmApp.Domain.Repositories;
+using FarmApp.Domain.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace FarmApp.Infrastructure.Persistence.Repositories;
@@ -43,5 +44,11 @@ public class StockBatchRepository(FarmAppDbContext db) : IStockBatchRepository
             .Where(b => b.HarvestId == harvestId)
             .OrderBy(b => b.StockBatchId)
             .Select(selector)
+            .ToListAsync(ct);
+
+    public Task<List<HarvestBatchCost>> GetHarvestBatchesBySeasonIdAsync(int seasonId, CancellationToken ct)
+        => db.StockBatches.AsNoTracking()
+            .Where(b => b.HarvestId != null && db.Harvests.Any(h => h.HarvestId == b.HarvestId && h.SeasonId == seasonId))
+            .Select(b => new HarvestBatchCost(b.QtyIn, b.UnitCost))
             .ToListAsync(ct);
 }

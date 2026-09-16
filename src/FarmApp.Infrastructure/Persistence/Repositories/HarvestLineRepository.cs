@@ -16,4 +16,9 @@ public class HarvestLineRepository(FarmAppDbContext db) : IHarvestLineRepository
 
     public async Task AddRangeAsync(IEnumerable<HarvestLine> lines, CancellationToken ct)
         => await db.HarvestLines.AddRangeAsync(lines, ct);
+
+    public Task<decimal> GetTotalKgHarvestedForSeasonAsync(int seasonId, CancellationToken ct)
+        => db.HarvestLines.AsNoTracking()
+            .Where(hl => db.Harvests.Any(h => h.HarvestId == hl.HarvestId && h.SeasonId == seasonId))
+            .SumAsync(hl => hl.QtyKg, ct);
 }

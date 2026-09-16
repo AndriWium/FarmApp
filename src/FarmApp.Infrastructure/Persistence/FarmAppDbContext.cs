@@ -50,6 +50,7 @@ public class FarmAppDbContext(DbContextOptions<FarmAppDbContext> options) : DbCo
     public DbSet<RainfallLog> RainfallLogs => Set<RainfallLog>();
     public DbSet<Harvest> Harvests => Set<Harvest>();
     public DbSet<HarvestLine> HarvestLines => Set<HarvestLine>();
+    public DbSet<SeasonCostSummary> SeasonCostSummaries => Set<SeasonCostSummary>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {

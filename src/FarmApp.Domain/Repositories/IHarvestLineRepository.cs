@@ -12,4 +12,9 @@ public interface IHarvestLineRepository
         int harvestId, Expression<Func<HarvestLine, TResult>> selector, CancellationToken ct);
 
     Task AddRangeAsync(IEnumerable<HarvestLine> lines, CancellationToken ct);
+
+    /// <summary>Σ QtyKg across every HarvestLine whose Harvest belongs to the season - the
+    /// TotalKgHarvested half of ISeasonCostingService's actual season yield (doc 09). Returns 0
+    /// for a season with no harvests yet, never null.</summary>
+    Task<decimal> GetTotalKgHarvestedForSeasonAsync(int seasonId, CancellationToken ct);
 }

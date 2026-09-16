@@ -28,4 +28,9 @@ public class ActivityInputRepository(FarmAppDbContext db) : IActivityInputReposi
             where item.Category == InputItemCategory.Chemical && item.WithholdingDays != null
             select new ChemicalSprayRow(activity.ActivityId, activity.Date, item.Name, item.WithholdingDays!.Value))
             .ToListAsync(ct);
+
+    public Task<decimal> GetTotalInputCostForSeasonAsync(int seasonId, CancellationToken ct)
+        => db.ActivityInputs.AsNoTracking()
+            .Where(ai => db.Activities.Any(a => a.ActivityId == ai.ActivityId && a.SeasonId == seasonId))
+            .SumAsync(ai => ai.Qty * ai.UnitCost, ct);
 }

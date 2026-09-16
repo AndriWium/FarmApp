@@ -26,4 +26,9 @@ public class ActivityRepository(FarmAppDbContext db) : IActivityRepository
 
     public async Task AddAsync(Activity activity, CancellationToken ct)
         => await db.Activities.AddAsync(activity, ct);
+
+    public Task<decimal> GetTotalLabourCostForSeasonAsync(int seasonId, CancellationToken ct)
+        => db.Activities.AsNoTracking()
+            .Where(a => a.SeasonId == seasonId)
+            .SumAsync(a => a.LabourCost, ct);
 }

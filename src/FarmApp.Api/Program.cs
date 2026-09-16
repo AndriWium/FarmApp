@@ -9,6 +9,7 @@ using FarmApp.Api.Application.Grades;
 using FarmApp.Api.Application.InputItems;
 using FarmApp.Api.Application.InputPurchases;
 using FarmApp.Api.Application.Plantings;
+using FarmApp.Api.Application.SeasonCosting;
 using FarmApp.Api.Application.Seasons;
 using FarmApp.Api.Application.ActivityTypes;
 using FarmApp.Api.Application.Activities;
@@ -102,6 +103,7 @@ builder.Services.AddScoped<IActivityInputRepository, ActivityInputRepository>();
 builder.Services.AddScoped<IRainfallLogRepository, RainfallLogRepository>();
 builder.Services.AddScoped<IHarvestRepository, HarvestRepository>();
 builder.Services.AddScoped<IHarvestLineRepository, HarvestLineRepository>();
+builder.Services.AddScoped<ISeasonCostSummaryRepository, SeasonCostSummaryRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
 // Domain services — defined in FarmApp.Domain, wired up here per doc 11's dependency-inversion rule.
@@ -137,6 +139,7 @@ builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<IRainfallLogService, RainfallLogService>();
 builder.Services.AddScoped<IHarvestService, HarvestService>();
 builder.Services.AddScoped<IWithholdingLockService, WithholdingLockService>();
+builder.Services.AddScoped<ISeasonCostingService, SeasonCostingService>();
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();
