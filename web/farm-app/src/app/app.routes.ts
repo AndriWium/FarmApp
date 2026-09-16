@@ -70,6 +70,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'products',
+        loadComponent: () =>
+          import('./features/products/product-page/product-page.component').then(
+            (m) => m.ProductPageComponent,
+          ),
+      },
+      {
         path: 'expense-categories',
         loadComponent: () =>
           import(
@@ -83,7 +90,7 @@ export const routes: Routes = [
             (m) => m.ActivityTypePageComponent,
           ),
       },
-      // Phase 5b-2 (rest) adds: products, pack sizes, customers (same pattern as above).
+      // Phase 5b-2 (rest) adds: pack sizes, customers (same pattern as above).
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },
