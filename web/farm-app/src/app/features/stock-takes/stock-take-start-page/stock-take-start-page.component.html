@@ -1,0 +1,95 @@
+<p><a routerLink="/stock-takes">&larr; Back to stock takes</a></p>
+<h1>Start a Stock Take</h1>
+
+@if (!canManage()) {
+  <p class="hint">Only an Owner can start a stock take.</p>
+} @else {
+  <p class="hint">
+    Pick a location and select every batch you're about to physically count. Starting snapshots
+    each batch's system quantity right now - you count and submit each batch's actual quantity
+    on the next screen (recording counts is a separate step, and you can come back later to
+    finish it).
+  </p>
+
+  <form class="inline-form" [formGroup]="header">
+    <label>
+      Date
+      <input formControlName="date" type="date" />
+    </label>
+
+    <label>
+      Location (optional)
+      <select formControlName="locationId">
+        <option [ngValue]="null">No location</option>
+        @for (location of locations(); track location.locationId) {
+          <option [ngValue]="location.locationId">{{ location.name }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      Notes (optional)
+      <input formControlName="notes" maxlength="500" placeholder="Notes" />
+    </label>
+  </form>
+
+  <label class="toggle">
+    <input type="checkbox" [checked]="showDepleted()" (change)="toggleShowDepleted()" />
+    Show batches with zero on hand
+  </label>
+
+  @if (loading()) {
+    <p class="hint">Loading stock batches...</p>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Product</th>
+          <th>Grade</th>
+          <th>Source</th>
+          <th>Date</th>
+          <th>On Hand</th>
+          <th>Unit Cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of visibleRows(); track row.stockBatchId) {
+          <tr>
+            <td>
+              <input
+                type="checkbox"
+                [checked]="isSelected(row.stockBatchId)"
+                (change)="toggleSelected(row.stockBatchId)"
+              />
+            </td>
+            <td>{{ productName(row.productId) }}</td>
+            <td>{{ gradeName(row.gradeId) }}</td>
+            <td>{{ row.source }}</td>
+            <td>{{ row.date | date: 'yyyy-MM-dd' }}</td>
+            <td>{{ row.onHand }}</td>
+            <td>{{ row.unitCost | number: '1.2-2' }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7">No stock batches match this filter.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  <div class="form-actions">
+    <button
+      type="button"
+      [disabled]="header.invalid || selectedIds().size === 0 || submitting()"
+      (click)="submit()"
+    >
+      {{ submitting() ? 'Starting...' : 'Start stock take (' + selectedIds().size + ' batches)' }}
+    </button>
+  </div>
+
+  @if (submitError()) {
+    <p class="error">{{ submitError() }}</p>
+  }
+}
