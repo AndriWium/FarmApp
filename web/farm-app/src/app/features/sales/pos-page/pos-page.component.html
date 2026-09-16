@@ -48,8 +48,168 @@
       >Selling at <strong>{{ locationName(tillSession()!.locationId) }}</strong> - session opened
       {{ tillSession()!.openedAt | date: 'short' }}</span
     >
+    <label class="price-list-picker">
+      Price list
+      <select [ngModel]="priceListId()" (ngModelChange)="priceListId.set($event)" name="priceListId">
+        @for (list of priceLists(); track list.priceListId) {
+          <option [ngValue]="list.priceListId">{{ list.name }}</option>
+        }
+      </select>
+    </label>
     <button type="button" class="link" (click)="changeSession()">Change session</button>
   </div>
 
-  <p class="hint">Product grid, basket, and checkout land here next.</p>
+  <div class="pos-layout">
+    <section class="grid-section">
+      <h2>Products</h2>
+      <div class="product-grid">
+        @for (product of activeProducts(); track product.productId) {
+          <button type="button" class="product-card" (click)="openPicker(product)">
+            <span class="product-name">{{ product.name }}</span>
+            <span class="product-type">{{ product.productType }}</span>
+          </button>
+        } @empty {
+          <p class="hint">No active products yet.</p>
+        }
+      </div>
+    </section>
+
+    <section class="basket-section">
+      <h2>Basket</h2>
+      @if (basket().length === 0) {
+        <p class="hint">Tap a product to add it to the basket.</p>
+      } @else {
+        <table class="basket-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Unit price</th>
+              <th>Discount</th>
+              <th>Line total</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of basket(); track line.key) {
+              <tr>
+                <td>
+                  <strong>{{ line.productName }}</strong>
+                  @if (line.gradeName) {
+                    <div class="hint">{{ line.gradeName }}</div>
+                  }
+                  <div class="hint">{{ line.packSizeName ? line.packSizeName : 'loose' }}</div>
+                </td>
+                <td>{{ line.qty | number: '1.0-3' }} {{ line.packSizeName ? 'x' : '' }}</td>
+                <td>{{ line.unitPrice | number: '1.2-2' }}</td>
+                <td class="discount-cell">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    [ngModel]="line.discountAmount"
+                    (ngModelChange)="setLineDiscountAmount(line.key, $event)"
+                    [name]="'discountAmount-' + line.key"
+                    aria-label="Discount amount"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Reason (e.g. old stock)"
+                    [ngModel]="line.discountReason"
+                    (ngModelChange)="setLineDiscountReason(line.key, $event)"
+                    [name]="'discountReason-' + line.key"
+                    aria-label="Discount reason"
+                  />
+                </td>
+                <td>{{ lineTotal(line) | number: '1.2-2' }}</td>
+                <td><button type="button" (click)="removeLine(line.key)">Remove</button></td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4"><strong>Total</strong></td>
+              <td><strong>{{ basketTotal() | number: '1.2-2' }}</strong></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      }
+    </section>
+  </div>
+
+  @if (pickerProduct(); as product) {
+    <!-- No click-outside-to-close on the backdrop itself (would need its own focus/keyboard
+         handling to stay accessible) - the Cancel button and Escape key on the dialog cover it. -->
+    <div class="picker-backdrop">
+      <div class="picker" role="dialog" aria-modal="true" (keydown.escape)="closePicker()">
+        <h2>{{ product.name }}</h2>
+
+        @if (pickerShowsGrade()) {
+          <label>
+            Grade
+            <select [ngModel]="pickerGradeId()" (ngModelChange)="onPickerGradeChange($event)" name="pickerGradeId">
+              <option [ngValue]="null">No grade</option>
+              @for (grade of grades(); track grade.gradeId) {
+                <option [ngValue]="grade.gradeId">{{ grade.name }}</option>
+              }
+            </select>
+          </label>
+        }
+
+        @if (pickerPackSizes().length > 0) {
+          <label>
+            Pack size
+            <select
+              [ngModel]="pickerPackSizeId()"
+              (ngModelChange)="onPickerPackSizeChange($event)"
+              name="pickerPackSizeId"
+            >
+              <option [ngValue]="null">Loose ({{ product.baseUnit }})</option>
+              @for (packSize of pickerPackSizes(); track packSize.packSizeId) {
+                <option [ngValue]="packSize.packSizeId">{{ packSize.name }}</option>
+              }
+            </select>
+          </label>
+        }
+
+        <label>
+          {{ pickerPackSizeId() === null ? 'Quantity (' + product.baseUnit + ')' : 'Quantity (packs)' }}
+          <input
+            type="number"
+            min="0.001"
+            step="0.001"
+            [ngModel]="pickerQty()"
+            (ngModelChange)="pickerQty.set($event)"
+            name="pickerQty"
+          />
+        </label>
+
+        <label>
+          Unit price
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            [ngModel]="pickerUnitPrice()"
+            (ngModelChange)="pickerUnitPrice.set($event)"
+            name="pickerUnitPrice"
+          />
+        </label>
+        @if (pickerLoadingPrice()) {
+          <p class="hint">Looking up price...</p>
+        }
+        @if (pickerPriceHint()) {
+          <p class="hint">{{ pickerPriceHint() }}</p>
+        }
+
+        <div class="picker-actions">
+          <button type="button" class="secondary" (click)="closePicker()">Cancel</button>
+          <button type="button" [disabled]="!pickerCanAdd()" (click)="addPickerToBasket()">Add to basket</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <p class="hint">Checkout lands here next.</p>
 }

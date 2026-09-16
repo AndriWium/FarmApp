@@ -101,4 +101,174 @@ button {
   border: 1px solid #cfe0cf;
   border-radius: 8px;
   font-size: 0.95rem;
+  flex-wrap: wrap;
+}
+
+.price-list-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+
+  select {
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font: inherit;
+  }
+}
+
+.pos-layout {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+h2 {
+  font-size: 1rem;
+  margin: 0 0 0.8rem;
+}
+
+// Big, tappable cards - the task brief's explicit "used with dirty hands in a hurry" requirement,
+// deliberately not another dense master-data table (every other Phase 5 screen IS a table).
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.8rem;
+}
+
+.product-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-height: 96px;
+  padding: 1rem;
+  border: 2px solid #cfe0cf;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+
+  &:hover,
+  &:focus-visible {
+    border-color: #2f6b3a;
+    background: #f4f8f4;
+  }
+
+  .product-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    line-height: 1.25;
+  }
+
+  .product-type {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6a8a6f;
+  }
+}
+
+.basket-section {
+  // The basket table has enough columns (item/qty/price/discount/total/remove) that a narrow
+  // laptop window would otherwise force the whole page to scroll sideways - contained here so
+  // only the table itself scrolls.
+  overflow-x: auto;
+}
+
+.basket-table {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+  }
+
+  th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #666;
+  }
+
+  input {
+    padding: 0.3rem 0.4rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font: inherit;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+.discount-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 140px;
+}
+
+.picker-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.picker {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1.5rem;
+  width: min(360px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+
+  h2 {
+    margin: 0;
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.9rem;
+  }
+
+  select,
+  input {
+    padding: 0.55rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font: inherit;
+  }
+}
+
+.picker-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+
+  button.secondary {
+    background: #fff;
+    color: #2f6b3a;
+  }
 }
