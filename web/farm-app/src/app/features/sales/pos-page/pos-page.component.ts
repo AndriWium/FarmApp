@@ -3,6 +3,8 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { extractErrorMessage } from '../../../shared/http-error.util';
+import { CustomerDto } from '../../customers/customer.model';
+import { CustomersApiService } from '../../customers/customers-api.service';
 import { GradeDto } from '../../grades/grade.model';
 import { GradesApiService } from '../../grades/grades-api.service';
 import { LocationDto } from '../../locations/location.model';
@@ -14,8 +16,22 @@ import { PriceListsApiService } from '../../price-lists/price-lists-api.service'
 import { PricesApiService } from '../../prices/prices-api.service';
 import { ProductDto } from '../../products/product.model';
 import { ProductsApiService } from '../../products/products-api.service';
+import { CreateSaleRequest, SALE_CHANNELS, SALE_PAYMENT_METHODS, SaleChannel, SaleDto, SalePaymentMethod } from '../sale.model';
+import { SalesApiService } from '../sales-api.service';
+import { StockMovementsApiService } from '../../stock-movements/stock-movements-api.service';
 import { TillSessionDto } from '../../till-sessions/till-session.model';
 import { TillSessionsApiService } from '../../till-sessions/till-sessions-api.service';
+
+/** One row of the split-payment editor at checkout - Card/EFT/Account amounts must sum to exactly
+ * the basket total (SaleService.CreateSaleAsync's PaymentMismatch check, no partial payments). */
+interface PaymentRow {
+  method: SalePaymentMethod;
+  amount: number;
+}
+
+function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
 
 /** One product/grade/pack-size/qty/price/discount line sitting in the basket, before checkout. A
  * plain signal-backed array rather than a FormArray (task brief's own call) - the basket is built
@@ -58,6 +74,9 @@ export class PosPageComponent implements OnInit {
   private packSizesApi = inject(PackSizesApiService);
   private priceListsApi = inject(PriceListsApiService);
   private pricesApi = inject(PricesApiService);
+  private customersApi = inject(CustomersApiService);
+  private salesApi = inject(SalesApiService);
+  private stockMovementsApi = inject(StockMovementsApiService);
 
   // --- Till-session gate (Phase 5d-1 commit 1) ---
 
@@ -78,7 +97,12 @@ export class PosPageComponent implements OnInit {
   grades = signal<GradeDto[]>([]);
   gradesById = computed(() => new Map(this.grades().map((g) => [g.gradeId, g])));
   packSizes = signal<PackSizeDto[]>([]);
+  packSizesById = computed(() => new Map(this.packSizes().map((p) => [p.packSizeId, p])));
   priceLists = signal<PriceListDto[]>([]);
+  productsById = computed(() => new Map(this.products().map((p) => [p.productId, p])));
+  customers = signal<CustomerDto[]>([]);
+  activeCustomers = computed(() => this.customers().filter((c) => c.isActive));
+  customersById = computed(() => new Map(this.customers().map((c) => [c.customerId, c])));
 
   // "Retail" if one exists (the overwhelmingly common sale), else whatever's first active - a
   // judgment call since the task brief only said "whichever makes sense" (see DECISIONS.md).
@@ -88,6 +112,7 @@ export class PosPageComponent implements OnInit {
     this.productsApi.getAll().subscribe((rows) => this.products.set(rows));
     this.gradesApi.getAll().subscribe((rows) => this.grades.set(rows));
     this.packSizesApi.getAll().subscribe((rows) => this.packSizes.set(rows));
+    this.customersApi.getAll().subscribe((rows) => this.customers.set(rows));
     this.priceListsApi.getAll().subscribe((rows) => {
       this.priceLists.set(rows);
       const retail = rows.find((p) => p.isActive && p.name.toLowerCase().includes('retail'));
@@ -178,6 +203,7 @@ export class PosPageComponent implements OnInit {
     const packSizeId = this.pickerPackSizeId();
     const packSize = packSizeId === null ? null : this.packSizes().find((p) => p.packSizeId === packSizeId) ?? null;
 
+    this.ensureClientGuid();
     this.basket.update((lines) => [
       ...lines,
       {
@@ -194,6 +220,7 @@ export class PosPageComponent implements OnInit {
         discountReason: null,
       },
     ]);
+    this.syncSinglePayment();
     this.closePicker();
   }
 
@@ -202,23 +229,222 @@ export class PosPageComponent implements OnInit {
   basket = signal<BasketLine[]>([]);
 
   lineTotal(line: BasketLine): number {
-    return line.qty * line.unitPrice - line.discountAmount;
+    return round2(line.qty * line.unitPrice - line.discountAmount);
   }
 
-  basketTotal = computed(() => this.basket().reduce((sum, line) => sum + this.lineTotal(line), 0));
+  basketTotal = computed(() => round2(this.basket().reduce((sum, line) => sum + this.lineTotal(line), 0)));
 
   removeLine(key: string): void {
     this.basket.update((lines) => lines.filter((l) => l.key !== key));
+    this.insufficientStockKeys.update((keys) => {
+      if (!keys.has(key)) return keys;
+      const next = new Set(keys);
+      next.delete(key);
+      return next;
+    });
+    // An emptied basket is a genuinely new "next sale" the moment something is added again - see
+    // ensureClientGuid's comment for why this matters.
+    if (this.basket().length === 0) this.clientGuid.set(null);
+    else this.syncSinglePayment();
   }
 
   setLineDiscountAmount(key: string, amount: number): void {
     this.basket.update((lines) =>
       lines.map((l) => (l.key === key ? { ...l, discountAmount: Number.isFinite(amount) && amount >= 0 ? amount : 0 } : l)),
     );
+    this.syncSinglePayment();
   }
 
   setLineDiscountReason(key: string, reason: string): void {
     this.basket.update((lines) => lines.map((l) => (l.key === key ? { ...l, discountReason: reason || null } : l)));
+  }
+
+  // --- Checkout ---
+
+  // ClientGuid (doc 08): generated once when the basket starts (the first line added to an empty
+  // basket - see addPickerToBasket/removeLine above), NOT regenerated on every submit attempt.
+  // That's what makes a flaky-connection retry idempotent: resubmitting the same basket sends the
+  // same ClientGuid, so the backend either creates the sale once or (on a genuine retry after the
+  // first attempt actually landed) returns the existing one instead of creating a second. Only a
+  // real success rotates it (see submit()'s next handler) - every error path, network failure
+  // included, leaves it untouched on purpose.
+  clientGuid = signal<string | null>(null);
+
+  private ensureClientGuid(): void {
+    if (!this.clientGuid()) this.clientGuid.set(crypto.randomUUID());
+  }
+
+  channel = signal<SaleChannel>('FarmStall');
+  saleChannels = SALE_CHANNELS;
+  paymentMethods = SALE_PAYMENT_METHODS;
+  customerId = signal<number | null>(null);
+  notes = signal<string | null>(null);
+
+  paymentRows = signal<PaymentRow[]>([{ method: 'Card', amount: 0 }]);
+  paymentsTotal = computed(() => round2(this.paymentRows().reduce((sum, r) => sum + (r.amount || 0), 0)));
+  paymentsRemaining = computed(() => round2(this.basketTotal() - this.paymentsTotal()));
+  requiresCustomer = computed(() => this.paymentRows().some((r) => r.method === 'Account'));
+
+  // The common case (one payment method covering the whole sale) should never need the cashier to
+  // retype the total by hand - keeps the single row's amount tracking the basket as it changes.
+  // The moment a second row exists, amounts become the cashier's own call (a real split).
+  private syncSinglePayment(): void {
+    if (this.paymentRows().length === 1) {
+      this.paymentRows.set([{ ...this.paymentRows()[0], amount: this.basketTotal() }]);
+    }
+  }
+
+  addPaymentRow(): void {
+    const usedMethods = new Set(this.paymentRows().map((r) => r.method));
+    const nextMethod = this.paymentMethods.find((m) => !usedMethods.has(m)) ?? 'Card';
+    const remaining = Math.max(this.paymentsRemaining(), 0);
+    this.paymentRows.update((rows) => [...rows, { method: nextMethod, amount: remaining }]);
+  }
+
+  removePaymentRow(index: number): void {
+    if (this.paymentRows().length <= 1) return;
+    this.paymentRows.update((rows) => rows.filter((_, i) => i !== index));
+  }
+
+  setPaymentMethod(index: number, method: SalePaymentMethod): void {
+    this.paymentRows.update((rows) => rows.map((r, i) => (i === index ? { ...r, method } : r)));
+  }
+
+  setPaymentAmount(index: number, amount: number): void {
+    this.paymentRows.update((rows) =>
+      rows.map((r, i) => (i === index ? { ...r, amount: Number.isFinite(amount) && amount >= 0 ? amount : 0 } : r)),
+    );
+  }
+
+  canSubmit = computed(() => {
+    if (this.basket().length === 0) return false;
+    if (this.paymentRows().some((r) => r.amount <= 0)) return false;
+    if (this.paymentsRemaining() !== 0) return false;
+    if (this.requiresCustomer() && this.customerId() === null) return false;
+    return true;
+  });
+
+  submitting = signal(false);
+  submitError = signal('');
+  insufficientStockKeys = signal<Set<string>>(new Set());
+  lastSale = signal<SaleDto | null>(null);
+  lastSaleWasReplay = signal(false);
+
+  submit(): void {
+    const session = this.tillSession();
+    if (!this.canSubmit() || !session) return;
+
+    this.ensureClientGuid();
+    this.submitting.set(true);
+    this.submitError.set('');
+    this.insufficientStockKeys.set(new Set());
+
+    const request: CreateSaleRequest = {
+      clientGuid: this.clientGuid()!,
+      tillSessionId: session.tillSessionId,
+      customerId: this.customerId(),
+      channel: this.channel(),
+      notes: this.notes(),
+      lines: this.basket().map((l) => ({
+        productId: l.productId,
+        gradeId: l.gradeId,
+        packSizeId: l.packSizeId,
+        qty: l.qty,
+        unitPrice: l.unitPrice,
+        discountAmount: l.discountAmount,
+        discountReason: l.discountReason,
+      })),
+      payments: this.paymentRows().map((p) => ({ method: p.method, amount: round2(p.amount) })),
+    };
+
+    this.salesApi.create(request).subscribe({
+      next: (res) => {
+        this.submitting.set(false);
+        this.lastSale.set(res.body ?? null);
+        // doc 08: 201 is a genuine first create, 200 is an idempotent replay of an already-landed
+        // sale (only reachable here if a prior attempt's response was lost but the write stuck).
+        this.lastSaleWasReplay.set(res.status === 200);
+        this.basket.set([]);
+        this.paymentRows.set([{ method: 'Card', amount: 0 }]);
+        this.customerId.set(null);
+        this.notes.set(null);
+        this.channel.set('FarmStall');
+        // A real success is the only thing that rotates the ClientGuid - see its own comment.
+        this.clientGuid.set(null);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.submitting.set(false);
+        // status 0: the request never reached the server (offline/refused/timed out) - nothing was
+        // created, so the same ClientGuid is safe and correct to resubmit unchanged (doc 08).
+        if (err.status === 0) {
+          this.submitError.set(
+            'Could not reach the server. Your basket is safe - check the connection and tap "Submit sale" again.',
+          );
+          return;
+        }
+
+        const title = (err.error as { title?: string } | null)?.title;
+        if (err.status === 409 && title === 'Insufficient stock') {
+          this.submitError.set(extractErrorMessage(err));
+          this.flagShortLines();
+          return;
+        }
+
+        this.submitError.set(extractErrorMessage(err));
+      },
+    });
+  }
+
+  // Best-effort "which line was short" highlight: SaleService's InsufficientStock detail message
+  // (StockMovementService.TryAllocateAsync) reports Requested/Available qty but not which basket
+  // line triggered it, so this re-fetches on-hand and re-walks the basket in the same order the
+  // backend allocates (product/grade, cumulative) to find the first line(s) that would overrun -
+  // matches doc 01's "show which product/grade was short" without needing a backend change.
+  private flagShortLines(): void {
+    this.stockMovementsApi.getOnHandSummary().subscribe((summary) => {
+      const available = new Map<string, number>();
+      for (const row of summary) available.set(`${row.productId}|${row.gradeId ?? 'null'}`, row.qtyOnHand);
+
+      const used = new Map<string, number>();
+      const shortKeys = new Set<string>();
+      for (const line of this.basket()) {
+        const packSize = line.packSizeId === null ? null : this.packSizesById().get(line.packSizeId);
+        const baseQty = packSize ? line.qty * packSize.qtyInBaseUnit : line.qty;
+        const mapKey = `${line.productId}|${line.gradeId ?? 'null'}`;
+        const usedSoFar = used.get(mapKey) ?? 0;
+        const onHand = available.get(mapKey) ?? 0;
+        if (usedSoFar + baseQty > onHand) shortKeys.add(line.key);
+        used.set(mapKey, usedSoFar + baseQty);
+      }
+      this.insufficientStockKeys.set(shortKeys);
+    });
+  }
+
+  dismissReceipt(): void {
+    this.lastSale.set(null);
+  }
+
+  saleLineProductName(productId: number): string {
+    return this.productsById().get(productId)?.name ?? `#${productId}`;
+  }
+
+  saleLineGradeName(gradeId: number | null): string {
+    if (gradeId === null) return '-';
+    return this.gradesById().get(gradeId)?.name ?? `#${gradeId}`;
+  }
+
+  saleLinePackSizeName(packSizeId: number | null): string {
+    if (packSizeId === null) return 'loose';
+    return this.packSizesById().get(packSizeId)?.name ?? `#${packSizeId}`;
+  }
+
+  customerName(id: number | null): string {
+    if (id === null) return 'Walk-in (no customer)';
+    return this.customersById().get(id)?.name ?? `#${id}`;
+  }
+
+  saleTotal(sale: SaleDto): number {
+    return round2(sale.lines.reduce((sum, l) => sum + (l.qty * l.unitPrice - l.discountAmount), 0));
   }
 
   ngOnInit(): void {

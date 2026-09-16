@@ -92,13 +92,16 @@
           </thead>
           <tbody>
             @for (line of basket(); track line.key) {
-              <tr>
+              <tr [class.short]="insufficientStockKeys().has(line.key)">
                 <td>
                   <strong>{{ line.productName }}</strong>
                   @if (line.gradeName) {
                     <div class="hint">{{ line.gradeName }}</div>
                   }
                   <div class="hint">{{ line.packSizeName ? line.packSizeName : 'loose' }}</div>
+                  @if (insufficientStockKeys().has(line.key)) {
+                    <div class="error">Not enough stock - reduce the quantity or remove this line.</div>
+                  }
                 </td>
                 <td>{{ line.qty | number: '1.0-3' }} {{ line.packSizeName ? 'x' : '' }}</td>
                 <td>{{ line.unitPrice | number: '1.2-2' }}</td>
@@ -137,6 +140,147 @@
       }
     </section>
   </div>
+
+  @if (lastSale(); as sale) {
+    <section class="receipt">
+      <h2>{{ lastSaleWasReplay() ? 'Sale already recorded' : 'Sale complete' }} - #{{ sale.saleId }}</h2>
+      @if (lastSaleWasReplay()) {
+        <p class="hint">This was a retry of a sale that had already gone through - nothing was sold twice.</p>
+      }
+      <table class="receipt-table">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Unit price</th>
+            <th>Discount</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of sale.lines; track line.saleLineId) {
+            <tr>
+              <td>
+                {{ saleLineProductName(line.productId) }}
+                @if (line.gradeId !== null) {
+                  <div class="hint">{{ saleLineGradeName(line.gradeId) }}</div>
+                }
+                <div class="hint">{{ saleLinePackSizeName(line.packSizeId) }}</div>
+              </td>
+              <td>{{ line.qty | number: '1.0-3' }}</td>
+              <td>{{ line.unitPrice | number: '1.2-2' }}</td>
+              <td>{{ line.discountAmount | number: '1.2-2' }}{{ line.discountReason ? ' (' + line.discountReason + ')' : '' }}</td>
+              <td>{{ line.qty * line.unitPrice - line.discountAmount | number: '1.2-2' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <p class="receipt-total">
+        Total: <strong>{{ saleTotal(sale) | number: '1.2-2' }}</strong>
+      </p>
+      <p><strong>Payments</strong></p>
+      <ul class="payment-summary">
+        @for (payment of sale.payments; track payment.salePaymentId) {
+          <li>{{ payment.method }}: {{ payment.amount | number: '1.2-2' }}</li>
+        }
+      </ul>
+      <p class="hint">Customer: {{ customerName(sale.customerId) }} - Channel: {{ sale.channel }}</p>
+      <button type="button" (click)="dismissReceipt()">Start next sale</button>
+    </section>
+  } @else if (basket().length > 0) {
+    <section class="checkout">
+      <h2>Checkout</h2>
+
+      <label>
+        Customer (optional{{ requiresCustomer() ? ' - required for an Account payment' : '' }})
+        <select [ngModel]="customerId()" (ngModelChange)="customerId.set($event)" name="customerId">
+          <option [ngValue]="null">Walk-in (no customer)</option>
+          @for (customer of activeCustomers(); track customer.customerId) {
+            <option [ngValue]="customer.customerId">{{ customer.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Channel
+        <select [ngModel]="channel()" (ngModelChange)="channel.set($event)" name="channel">
+          @for (c of saleChannels; track c) {
+            <option [ngValue]="c">{{ c }}</option>
+          }
+        </select>
+      </label>
+
+      <h3>Payment</h3>
+      <table class="payment-table">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Amount</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of paymentRows(); track $index) {
+            <tr>
+              <td>
+                <select
+                  [ngModel]="row.method"
+                  (ngModelChange)="setPaymentMethod($index, $event)"
+                  [name]="'paymentMethod-' + $index"
+                >
+                  @for (method of paymentMethods; track method) {
+                    <option [ngValue]="method">{{ method }}</option>
+                  }
+                </select>
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [ngModel]="row.amount"
+                  (ngModelChange)="setPaymentAmount($index, $event)"
+                  [name]="'paymentAmount-' + $index"
+                />
+              </td>
+              <td>
+                @if (paymentRows().length > 1) {
+                  <button type="button" (click)="removePaymentRow($index)">Remove</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <button type="button" class="secondary" (click)="addPaymentRow()">Split payment</button>
+
+      <p class="payment-status">
+        Basket total: {{ basketTotal() | number: '1.2-2' }} - Payments: {{ paymentsTotal() | number: '1.2-2' }}
+        @if (paymentsRemaining() !== 0) {
+          <span class="error">({{ paymentsRemaining() > 0 ? 'short by ' : 'over by ' }}{{ (paymentsRemaining() | number: '1.2-2') }})</span>
+        }
+      </p>
+
+      <label>
+        Notes (optional)
+        <input
+          type="text"
+          maxlength="500"
+          [ngModel]="notes()"
+          (ngModelChange)="notes.set($event || null)"
+          name="notes"
+        />
+      </label>
+
+      <button type="button" [disabled]="!canSubmit() || submitting()" (click)="submit()">
+        {{ submitting() ? 'Submitting...' : 'Submit sale' }}
+      </button>
+
+      @if (submitError()) {
+        <p class="error">{{ submitError() }}</p>
+      }
+    </section>
+  }
 
   @if (pickerProduct(); as product) {
     <!-- No click-outside-to-close on the backdrop itself (would need its own focus/keyboard
@@ -210,6 +354,4 @@
       </div>
     </div>
   }
-
-  <p class="hint">Checkout lands here next.</p>
 }

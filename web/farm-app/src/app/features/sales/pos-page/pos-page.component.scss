@@ -272,3 +272,79 @@ h2 {
     color: #2f6b3a;
   }
 }
+
+tr.short {
+  background: #fdecea;
+}
+
+.checkout,
+.receipt {
+  max-width: 640px;
+  margin-top: 1.5rem;
+  padding: 1.2rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 0.9rem;
+    font-size: 0.9rem;
+  }
+
+  select,
+  input[type='text'],
+  input[type='number'] {
+    padding: 0.5rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font: inherit;
+  }
+
+  h3 {
+    font-size: 0.9rem;
+    margin: 1rem 0 0.5rem;
+  }
+}
+
+.receipt {
+  background: #f4f8f4;
+  border-color: #cfe0cf;
+}
+
+.payment-table,
+.receipt-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.6rem;
+  font-size: 0.9rem;
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid #eee;
+  }
+}
+
+.payment-status {
+  margin: 0.6rem 0 1rem;
+  font-size: 0.9rem;
+}
+
+.receipt-total {
+  font-size: 1.05rem;
+  margin: 0.6rem 0;
+}
+
+.payment-summary {
+  margin: 0 0 1rem;
+  padding-left: 1.2rem;
+}
+
+button.secondary {
+  background: #fff;
+  color: #2f6b3a;
+}
