@@ -1,0 +1,73 @@
+<h1>Crops</h1>
+
+<label class="toggle">
+  <input type="checkbox" [checked]="showInactive()" (change)="toggleShowInactive()" />
+  Show inactive
+</label>
+
+@if (canManage()) {
+  <form class="inline-form" [formGroup]="createForm" (ngSubmit)="add()">
+    <input formControlName="name" placeholder="Crop name" maxlength="50" />
+    <button type="submit" [disabled]="createForm.invalid">Add crop</button>
+    @if (createForm.controls.name.invalid && createForm.controls.name.touched) {
+      <span class="error">Name is required (max 50 characters).</span>
+    }
+    @if (createError()) {
+      <span class="error">{{ createError() }}</span>
+    }
+  </form>
+}
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Status</th>
+      @if (canManage()) {
+        <th></th>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @for (crop of crops(); track crop.cropId) {
+      @if (editingId() === crop.cropId) {
+        <tr [formGroup]="editForm">
+          <td><input formControlName="name" maxlength="50" /></td>
+          <td>
+            <label><input type="checkbox" formControlName="isActive" /> Active</label>
+          </td>
+          @if (canManage()) {
+            <td class="actions">
+              <button type="button" [disabled]="editForm.invalid" (click)="saveEdit(crop.cropId)">
+                Save
+              </button>
+              <button type="button" (click)="cancelEdit()">Cancel</button>
+              @if (editError()) {
+                <span class="error">{{ editError() }}</span>
+              }
+            </td>
+          }
+        </tr>
+      } @else {
+        <tr>
+          <td>{{ crop.name }}</td>
+          <td [class]="crop.isActive ? 'status-active' : 'status-inactive'">
+            {{ crop.isActive ? 'Active' : 'Inactive' }}
+          </td>
+          @if (canManage()) {
+            <td class="actions">
+              <button type="button" (click)="startEdit(crop)">Edit</button>
+              @if (crop.isActive) {
+                <button type="button" (click)="deactivate(crop)">Deactivate</button>
+              }
+            </td>
+          }
+        </tr>
+      }
+    } @empty {
+      <tr>
+        <td colspan="3">No crops yet.</td>
+      </tr>
+    }
+  </tbody>
+</table>
