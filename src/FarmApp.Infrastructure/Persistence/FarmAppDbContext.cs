@@ -53,6 +53,7 @@ public class FarmAppDbContext(DbContextOptions<FarmAppDbContext> options) : DbCo
     public DbSet<SeasonCostSummary> SeasonCostSummaries => Set<SeasonCostSummary>();
     public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
     public DbSet<Expense> Expenses => Set<Expense>();
+    public DbSet<RoadmapItem> RoadmapItems => Set<RoadmapItem>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {

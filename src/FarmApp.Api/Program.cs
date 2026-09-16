@@ -26,6 +26,7 @@ using FarmApp.Api.Application.PriceLists;
 using FarmApp.Api.Application.Prices;
 using FarmApp.Api.Application.ProducePurchases;
 using FarmApp.Api.Application.Products;
+using FarmApp.Api.Application.RoadmapItems;
 using FarmApp.Api.Application.StockBatches;
 using FarmApp.Api.Application.StockMovements;
 using FarmApp.Api.Application.StockTakes;
@@ -34,6 +35,7 @@ using FarmApp.Api.Application.Sales;
 using FarmApp.Api.Application.TillSessions;
 using FarmApp.Api.Middleware;
 using FarmApp.Domain.Entities;
+using FarmApp.Domain.Enums;
 using FarmApp.Domain.Repositories;
 using FarmApp.Domain.Services;
 using FarmApp.Infrastructure.Persistence;
@@ -111,6 +113,7 @@ builder.Services.AddScoped<ISeasonCostSummaryRepository, SeasonCostSummaryReposi
 builder.Services.AddScoped<IExpenseCategoryRepository, ExpenseCategoryRepository>();
 builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 builder.Services.AddScoped<IAccountingPeriodRepository, AccountingPeriodRepository>();
+builder.Services.AddScoped<IRoadmapItemRepository, RoadmapItemRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
 // Domain services — defined in FarmApp.Domain, wired up here per doc 11's dependency-inversion rule.
@@ -151,6 +154,7 @@ builder.Services.AddScoped<ISeasonCostingService, SeasonCostingService>();
 builder.Services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<IAccountingPeriodCloseService, AccountingPeriodCloseService>();
+builder.Services.AddScoped<IRoadmapItemService, RoadmapItemService>();
 
 // Reports bypass the usual repository/service layering (doc 11) - a plain concrete query class,
 // not an interface+implementation pair, registered directly.
@@ -209,6 +213,8 @@ builder.Services.AddScoped<IValidator<CreateExpenseCategoryRequest>, CreateExpen
 builder.Services.AddScoped<IValidator<UpdateExpenseCategoryRequest>, UpdateExpenseCategoryRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateExpenseRequest>, CreateExpenseRequestValidator>();
 builder.Services.AddScoped<IValidator<ReopenMonthRequest>, ReopenMonthRequestValidator>();
+builder.Services.AddScoped<IValidator<CreateRoadmapItemRequest>, CreateRoadmapItemRequestValidator>();
+builder.Services.AddScoped<IValidator<UpdateRoadmapItemRequest>, UpdateRoadmapItemRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();
 
@@ -281,6 +287,96 @@ using (var scope = app.Services.CreateScope())
         var owner = new AppUser { UserName = "andri", Role = "Owner" };
         owner.PasswordHash = hasher.HashPassword(owner, builder.Configuration["SeedOwnerPassword"] ?? "ChangeMe123!");
         db.Users.Add(owner);
+        db.SaveChanges();
+    }
+}
+
+// Idempotent seed: the "Up & Coming" tab's initial content (AI Guide/14-up-and-coming.md, "Seed
+// entries") - checked-before-insert like the Owner user seed above, so this never duplicates rows
+// on a restart. Gives the tab real content from day one instead of an empty screen (task brief).
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<FarmAppDbContext>();
+    if (!db.RoadmapItems.Any())
+    {
+        db.RoadmapItems.AddRange(
+            new RoadmapItem
+            {
+                Title = "One-click launcher (start the app + SQL together)",
+                Description = "Start-FarmApp.ps1: start LocalDB, start the published API if not " +
+                    "already running, wait for /health, open the browser. Matching Stop-FarmApp.ps1. " +
+                    "v2/v3 (tray app, then Windows Service) come later - see doc 14 item 1.",
+                Status = RoadmapItemStatus.Planned,
+                SortOrder = 10,
+                TargetPhase = null,
+            },
+            new RoadmapItem
+            {
+                Title = "Investigate: moving from LocalDB to a full SQL Server service",
+                Description = "Move to SQL Server 2022 Express when more than one PC needs the " +
+                    "system at once, the API should auto-start as a Windows Service, or real " +
+                    "production use begins and unattended backups are needed. Migration plan " +
+                    "(backup/restore or recreate+reseed) already written up - see doc 14 item 2.",
+                Status = RoadmapItemStatus.Planned,
+                SortOrder = 20,
+                TargetPhase = null,
+            },
+            new RoadmapItem
+            {
+                Title = "Browser outbox for offline POS",
+                Description = "Queue sales/movements locally when connectivity drops, sync once " +
+                    "back online. Graduated from the parking lot (doc 06 Phase 5 / doc 05 §20).",
+                Status = RoadmapItemStatus.Planned,
+                SortOrder = 30,
+                TargetPhase = null,
+            },
+            new RoadmapItem
+            {
+                Title = "Phone-friendly capture screens",
+                Description = "Narrower layouts for the screens most likely to be used standing " +
+                    "in the orchard/packhouse on a phone, not at the till PC.",
+                Status = RoadmapItemStatus.Planned,
+                SortOrder = 40,
+                TargetPhase = null,
+            },
+            new RoadmapItem
+            {
+                Title = "Scale & receipt-printer integration",
+                Description = "Direct integration with a till-side scale and receipt printer " +
+                    "instead of manual weight entry and no physical receipt.",
+                Status = RoadmapItemStatus.Planned,
+                SortOrder = 50,
+                TargetPhase = null,
+            },
+            new RoadmapItem
+            {
+                Title = "VAT201 report on registration",
+                Description = "VatAmount has been captured on purchase lines since day one (doc " +
+                    "10 §2) specifically so this report needs no schema change when the farm " +
+                    "registers for VAT - just the report itself, plus VatRate/tax-invoice wording.",
+                Status = RoadmapItemStatus.Planned,
+                SortOrder = 60,
+                TargetPhase = null,
+            },
+            new RoadmapItem
+            {
+                Title = "Accounting export (Xero/Sage CSV)",
+                Description = "Export sales/expenses in a format an accountant's package can " +
+                    "import directly, once real bookkeeping handoff is needed.",
+                Status = RoadmapItemStatus.Planned,
+                SortOrder = 70,
+                TargetPhase = null,
+            },
+            new RoadmapItem
+            {
+                Title = "Customer loyalty",
+                Description = "Simple repeat-customer rewards on top of the existing Customer/" +
+                    "account-sale foundation.",
+                Status = RoadmapItemStatus.Planned,
+                SortOrder = 80,
+                TargetPhase = null,
+            }
+        );
         db.SaveChanges();
     }
 }
