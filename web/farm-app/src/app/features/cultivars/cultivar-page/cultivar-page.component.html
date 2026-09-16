@@ -1,0 +1,102 @@
+<h1>Cultivars</h1>
+
+<label class="toggle">
+  <input type="checkbox" [checked]="showInactive()" (change)="toggleShowInactive()" />
+  Show inactive
+</label>
+
+@if (crops().length === 0) {
+  <p class="hint">No crops exist yet - add one on the Crops screen before adding cultivars.</p>
+}
+
+@if (canManage()) {
+  <form class="inline-form" [formGroup]="createForm" (ngSubmit)="add()">
+    <select formControlName="cropId">
+      <option [ngValue]="0">Select a crop...</option>
+      @for (crop of crops(); track crop.cropId) {
+        <option [ngValue]="crop.cropId">{{ crop.isActive ? crop.name : crop.name + ' (inactive)' }}</option>
+      }
+    </select>
+    <input formControlName="name" placeholder="Cultivar name" maxlength="50" />
+    <button type="submit" [disabled]="createForm.invalid">Add cultivar</button>
+    @if (createForm.controls.cropId.invalid && createForm.controls.cropId.touched) {
+      <span class="error">Select a crop.</span>
+    }
+    @if (createForm.controls.name.invalid && createForm.controls.name.touched) {
+      <span class="error">Name is required (max 50 characters).</span>
+    }
+    @if (createError()) {
+      <span class="error">{{ createError() }}</span>
+    }
+  </form>
+}
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Crop</th>
+      <th>Status</th>
+      @if (canManage()) {
+        <th></th>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @for (cultivar of cultivars(); track cultivar.cultivarId) {
+      @if (editingId() === cultivar.cultivarId) {
+        <tr [formGroup]="editForm">
+          <td><input formControlName="name" maxlength="50" /></td>
+          <td>
+            <select formControlName="cropId">
+              <option [ngValue]="0">Select a crop...</option>
+              @for (crop of crops(); track crop.cropId) {
+                <option [ngValue]="crop.cropId">
+                  {{ crop.isActive ? crop.name : crop.name + ' (inactive)' }}
+                </option>
+              }
+            </select>
+          </td>
+          <td>
+            <label><input type="checkbox" formControlName="isActive" /> Active</label>
+          </td>
+          @if (canManage()) {
+            <td class="actions">
+              <button
+                type="button"
+                [disabled]="editForm.invalid"
+                (click)="saveEdit(cultivar.cultivarId)"
+              >
+                Save
+              </button>
+              <button type="button" (click)="cancelEdit()">Cancel</button>
+              @if (editError()) {
+                <span class="error">{{ editError() }}</span>
+              }
+            </td>
+          }
+        </tr>
+      } @else {
+        <tr>
+          <td>{{ cultivar.name }}</td>
+          <td>{{ cropName(cultivar.cropId) }}</td>
+          <td [class]="cultivar.isActive ? 'status-active' : 'status-inactive'">
+            {{ cultivar.isActive ? 'Active' : 'Inactive' }}
+          </td>
+          @if (canManage()) {
+            <td class="actions">
+              <button type="button" (click)="startEdit(cultivar)">Edit</button>
+              @if (cultivar.isActive) {
+                <button type="button" (click)="deactivate(cultivar)">Deactivate</button>
+              }
+            </td>
+          }
+        </tr>
+      }
+    } @empty {
+      <tr>
+        <td colspan="4">No cultivars yet.</td>
+      </tr>
+    }
+  </tbody>
+</table>
