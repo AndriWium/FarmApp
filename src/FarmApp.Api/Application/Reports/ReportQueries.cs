@@ -1,5 +1,6 @@
 using System.Data;
 using Dapper;
+using FarmApp.Domain.Services;
 using Microsoft.Data.SqlClient;
 
 namespace FarmApp.Api.Application.Reports;
@@ -9,8 +10,14 @@ namespace FarmApp.Api.Application.Reports;
 /// IReportRepository abstraction, no IUnitOfWork. A plain concrete class (not
 /// interface+implementation like every other Application service) - reports are read-only
 /// aggregation queries, not business logic with a second implementation ever likely to exist, so
-/// the usual DI-for-testability ceremony isn't buying anything here (see DECISIONS.md).</summary>
-public class ReportQueries(IConfiguration configuration)
+/// the usual DI-for-testability ceremony isn't buying anything here (see DECISIONS.md).
+///
+/// Constructor-injects IDebtorsAgingCalculator alongside IConfiguration (Phase 4c) - the one
+/// place a report needs real Domain arithmetic rather than a SQL aggregation: debtors aging
+/// applies a customer's payments against their debts oldest-first (a pure calculation, unit
+/// tested independently), which Dapper fetches the raw rows for but shouldn't compute inline as
+/// a SQL CASE/window-function pile.</summary>
+public class ReportQueries(IConfiguration configuration, IDebtorsAgingCalculator agingCalculator)
 {
     private string ConnectionString => configuration.GetConnectionString("FarmApp")
         ?? throw new InvalidOperationException("Missing 'FarmApp' connection string.");
@@ -259,6 +266,113 @@ public class ReportQueries(IConfiguration configuration)
 
         return new RainfallComparisonDto(year, month, thisPeriod, historicalAverage, otherYears.Count);
     }
+
+    // ---- Cash & debtors report (doc 04 §5, Phase 4c) ----
+
+    /// <summary>doc 04 §5's till sessions over/short for a date range (filtered on ClosedAt, so a
+    /// session only shows once its day close has actually run). Orderable/groupable by OpenedBy
+    /// at the calling layer - no server-side grouping here, matching SalesAnalysis's own
+    /// "detail grain, let the caller group" precedent.</summary>
+    public async Task<IReadOnlyList<TillSessionOverShortDto>> GetTillSessionsAsync(DateTime from, DateTime to, CancellationToken ct)
+    {
+        using var db = CreateConnection();
+        var rows = await db.QueryAsync<TillSessionOverShortDto>(new CommandDefinition(
+            """
+            SELECT TillSessionId, LocationId, OpenedAt, OpenedBy, ClosedAt,
+                   SystemCardTotal, CardMachineBatchTotal, Difference, DifferenceNote
+            FROM Reporting.TillSessionsOverShort
+            WHERE ClosedAt >= @from AND ClosedAt <= @to
+            ORDER BY OpenedBy, ClosedAt;
+            """,
+            new { from, to }, cancellationToken: ct));
+        return rows.AsList();
+    }
+
+    /// <summary>doc 04 §5's cash flow summary, assembled from independent queries (same pattern as
+    /// GetIncomeStatementAsync) rather than one combined view - each source has a different join
+    /// shape. Cash in = card/EFT sale payments + all customer debt payments; cash out = expenses +
+    /// produce/input purchase costs (task brief's own breakdown). Named "cash flow" per doc 04's
+    /// wording, but every figure here is card/EFT/account movement, not literal cash (doc 01 §4's
+    /// card-only decision) - see CashFlowDto/DECISIONS.md.</summary>
+    public async Task<CashFlowDto> GetCashFlowAsync(DateTime from, DateTime to, CancellationToken ct)
+    {
+        using var db = CreateConnection();
+
+        var cashInCardEft = await db.QuerySingleAsync<decimal>(new CommandDefinition(
+            """
+            SELECT ISNULL(SUM(Amount), 0) FROM Reporting.SalePaymentDetail
+            WHERE Method IN ('Card', 'EFT') AND SaleDateTime >= @from AND SaleDateTime <= @to;
+            """,
+            new { from, to }, cancellationToken: ct));
+
+        var cashInDebtorPayments = await db.QuerySingleAsync<decimal>(new CommandDefinition(
+            "SELECT ISNULL(SUM(Amount), 0) FROM dbo.CustomerPayments WHERE [Date] >= @from AND [Date] <= @to;",
+            new { from, to }, cancellationToken: ct));
+
+        var cashOutExpenses = await db.QuerySingleAsync<decimal>(new CommandDefinition(
+            "SELECT ISNULL(SUM(Amount), 0) FROM Reporting.ExpensesByCategory WHERE [Date] >= @from AND [Date] <= @to;",
+            new { from, to }, cancellationToken: ct));
+
+        var cashOutPurchases = await db.QuerySingleAsync<decimal>(new CommandDefinition(
+            "SELECT ISNULL(SUM(Amount), 0) FROM Reporting.PurchaseCosts WHERE [Date] >= @from AND [Date] <= @to;",
+            new { from, to }, cancellationToken: ct));
+
+        var cashIn = cashInCardEft + cashInDebtorPayments;
+        var cashOut = cashOutExpenses + cashOutPurchases;
+
+        return new CashFlowDto(cashInCardEft, cashInDebtorPayments, cashIn, cashOutExpenses, cashOutPurchases, cashOut, cashIn - cashOut);
+    }
+
+    /// <summary>doc 04 §5's debtors aging: apply each customer's total CustomerPayments against
+    /// their Account-method sales oldest-first (the standard simplification the task brief
+    /// describes - CustomerPayment doesn't reference a specific Sale), then bucket whatever
+    /// remains by age from today. The actual allocation/bucketing arithmetic is
+    /// IDebtorsAgingCalculator (Domain, unit tested) - this method's job is only fetching the raw
+    /// per-customer debt/payment rows and handing them over. Only customers with a non-zero
+    /// outstanding total are returned.</summary>
+    public async Task<IReadOnlyList<DebtorAgingRowDto>> GetDebtorsAgingAsync(CancellationToken ct)
+    {
+        using var db = CreateConnection();
+
+        var debtRows = (await db.QueryAsync<AccountSaleRow>(new CommandDefinition(
+            """
+            SELECT a.CustomerId, c.Name AS CustomerName, a.SaleId, a.SaleDate, a.Amount
+            FROM Reporting.AccountSalesDetail a
+            JOIN dbo.Customers c ON c.CustomerId = a.CustomerId
+            ORDER BY a.CustomerId, a.SaleDate;
+            """,
+            cancellationToken: ct))).AsList();
+
+        var paymentsByCustomer = (await db.QueryAsync<(int CustomerId, decimal Total)>(new CommandDefinition(
+            "SELECT CustomerId, SUM(Amount) AS Total FROM dbo.CustomerPayments GROUP BY CustomerId;",
+            cancellationToken: ct)))
+            .ToDictionary(x => x.CustomerId, x => x.Total);
+
+        var asOf = DateTime.Today;
+        var result = new List<DebtorAgingRowDto>();
+
+        foreach (var group in debtRows.GroupBy(x => (x.CustomerId, x.CustomerName)))
+        {
+            var debts = group
+                .OrderBy(x => x.SaleDate) // oldest-first, per IDebtorsAgingCalculator's contract
+                .Select(x => new DebtLine(x.SaleId, x.SaleDate, x.Amount))
+                .ToList();
+            var totalPaid = paymentsByCustomer.GetValueOrDefault(group.Key.CustomerId);
+
+            var outstanding = agingCalculator.ApplyPaymentsOldestFirst(debts, totalPaid);
+            var buckets = agingCalculator.Bucket(outstanding, asOf);
+
+            if (buckets.Total <= 0) continue; // fully settled - nothing to show on an aging report
+
+            result.Add(new DebtorAgingRowDto(
+                group.Key.CustomerId, group.Key.CustomerName,
+                buckets.Current, buckets.Days30, buckets.Days60, buckets.Days90Plus, buckets.Total));
+        }
+
+        return result.OrderByDescending(x => x.Total).ToList();
+    }
+
+    private record AccountSaleRow(int CustomerId, string CustomerName, int SaleId, DateTime SaleDate, decimal Amount);
 
     private record HarvestSummaryRow(
         int CropId, DateTime StartDate, int ProductId, string ProductName, int? GradeId, string? GradeName, decimal QtyKg);

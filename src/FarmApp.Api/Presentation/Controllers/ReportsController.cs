@@ -56,4 +56,20 @@ public class ReportsController(ReportQueries queries, SeasonFarmingReportService
     public async Task<ActionResult<RainfallComparisonDto>> GetRainfall(
         [FromQuery] int year, [FromQuery] int month, CancellationToken ct)
         => Ok(await queries.GetRainfallComparisonAsync(year, month, ct));
+
+    // ---- Cash & debtors report (doc 04 §5) ----
+
+    [HttpGet("till-sessions")]
+    public async Task<ActionResult<IReadOnlyList<TillSessionOverShortDto>>> GetTillSessions(
+        [FromQuery] DateTime from, [FromQuery] DateTime to, CancellationToken ct)
+        => Ok(await queries.GetTillSessionsAsync(from, to, ct));
+
+    [HttpGet("cash-flow")]
+    public async Task<ActionResult<CashFlowDto>> GetCashFlow(
+        [FromQuery] DateTime from, [FromQuery] DateTime to, CancellationToken ct)
+        => Ok(await queries.GetCashFlowAsync(from, to, ct));
+
+    [HttpGet("debtors-aging")]
+    public async Task<ActionResult<IReadOnlyList<DebtorAgingRowDto>>> GetDebtorsAging(CancellationToken ct)
+        => Ok(await queries.GetDebtorsAgingAsync(ct));
 }

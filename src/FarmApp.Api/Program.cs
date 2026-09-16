@@ -116,6 +116,7 @@ builder.Services.AddScoped<IStockAllocationService, StockAllocationService>();
 builder.Services.AddScoped<ISaleLineCalculator, SaleLineCalculator>();
 builder.Services.AddScoped<ISeasonCostCalculator, SeasonCostCalculator>();
 builder.Services.AddScoped<IWithholdingLockCalculator, WithholdingLockCalculator>();
+builder.Services.AddScoped<IDebtorsAgingCalculator, DebtorsAgingCalculator>();
 
 builder.Services.AddScoped<IGradeService, GradeService>();
 builder.Services.AddScoped<IBlockService, BlockService>();

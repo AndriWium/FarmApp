@@ -65,3 +65,30 @@ public record InputUsageRowDto(int InputItemId, string InputItemName, decimal Qt
 /// year has any reading for this month yet - a young dataset legitimately has nothing to compare
 /// against (task brief: "return null/empty rather than erroring").</summary>
 public record RainfallComparisonDto(int Year, int Month, decimal ThisPeriodMm, decimal? HistoricalAverageMm, int YearsCompared);
+
+// ---- Cash & debtors report (doc 04 §5, Phase 4c) ----
+
+/// <summary>One closed TillSession's over/short figure - doc 04 §5's "till sessions: over/short
+/// per session, per cashier, trend". OpenedBy stays the raw AppUser id, matching TillSessionDto's
+/// own precedent (see db/views/Reporting.TillSessionsOverShort.sql).</summary>
+public record TillSessionOverShortDto(
+    int TillSessionId, int LocationId, DateTime OpenedAt, int OpenedBy, DateTime ClosedAt,
+    decimal? SystemCardTotal, decimal? CardMachineBatchTotal, decimal? Difference, string? DifferenceNote);
+
+/// <summary>doc 04 §5's cash flow summary for a date range. Named "cash flow" per the doc's own
+/// wording, but this is card/EFT/account movement, not literal cash (doc 01 §4's card-only
+/// decision - see DECISIONS.md/task brief) - the field names underneath are accurate about what
+/// each figure actually is.</summary>
+public record CashFlowDto(
+    decimal CashInCardEft, decimal CashInDebtorPayments, decimal CashIn,
+    decimal CashOutExpenses, decimal CashOutPurchases, decimal CashOut,
+    decimal Net);
+
+/// <summary>One customer's outstanding balance, aged current/30/60/90+ (doc 04 §5). Built from
+/// FarmApp.Domain.Services.IDebtorsAgingCalculator applied to that customer's Account-method
+/// sales and total CustomerPayments (see ReportQueries.GetDebtorsAgingAsync) - only customers with
+/// a non-zero outstanding total are returned (a fully-settled customer has nothing to show on an
+/// aging report).</summary>
+public record DebtorAgingRowDto(
+    int CustomerId, string CustomerName,
+    decimal Current, decimal Days30, decimal Days60, decimal Days90Plus, decimal Total);
