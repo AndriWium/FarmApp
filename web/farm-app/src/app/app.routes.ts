@@ -126,6 +126,48 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'produce-purchases',
+        loadComponent: () =>
+          import(
+            './features/produce-purchases/produce-purchase-list-page/produce-purchase-list-page.component'
+          ).then((m) => m.ProducePurchaseListPageComponent),
+      },
+      {
+        path: 'produce-purchases/new',
+        loadComponent: () =>
+          import(
+            './features/produce-purchases/produce-purchase-form-page/produce-purchase-form-page.component'
+          ).then((m) => m.ProducePurchaseFormPageComponent),
+      },
+      {
+        path: 'produce-purchases/:id',
+        loadComponent: () =>
+          import(
+            './features/produce-purchases/produce-purchase-detail-page/produce-purchase-detail-page.component'
+          ).then((m) => m.ProducePurchaseDetailPageComponent),
+      },
+      {
+        path: 'stock-takes',
+        loadComponent: () =>
+          import(
+            './features/stock-takes/stock-take-list-page/stock-take-list-page.component'
+          ).then((m) => m.StockTakeListPageComponent),
+      },
+      {
+        path: 'stock-takes/new',
+        loadComponent: () =>
+          import(
+            './features/stock-takes/stock-take-start-page/stock-take-start-page.component'
+          ).then((m) => m.StockTakeStartPageComponent),
+      },
+      {
+        path: 'stock-takes/:id',
+        loadComponent: () =>
+          import(
+            './features/stock-takes/stock-take-detail-page/stock-take-detail-page.component'
+          ).then((m) => m.StockTakeDetailPageComponent),
+      },
+      {
         path: 'stock-movements',
         loadComponent: () =>
           import('./features/stock-movements/movement-hub-page/movement-hub-page.component').then(

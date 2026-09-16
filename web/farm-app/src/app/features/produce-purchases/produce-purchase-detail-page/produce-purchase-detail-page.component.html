@@ -1,0 +1,50 @@
+<p><a routerLink="/produce-purchases">&larr; Back to produce purchases</a></p>
+
+@if (purchase(); as purchase) {
+  <h1>Purchase #{{ purchase.producePurchaseId }}</h1>
+  <p>
+    <strong>Supplier:</strong> {{ supplierName(purchase.supplierId) }}
+    &nbsp;|&nbsp;
+    <strong>Date:</strong> {{ purchase.date | date: 'yyyy-MM-dd' }}
+    &nbsp;|&nbsp;
+    <strong>Invoice Ref:</strong> {{ purchase.invoiceRef || '-' }}
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Grade</th>
+        <th>Qty</th>
+        <th>Unit Cost</th>
+        <th>Line Total</th>
+        <th>VAT</th>
+        <th>Stock Batch</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (line of purchase.lines; track line.producePurchaseLineId) {
+        <tr>
+          <td>{{ productName(line.productId) }}</td>
+          <td>{{ gradeName(line.gradeId) }}</td>
+          <td>{{ line.qty }}</td>
+          <td>{{ line.unitCost | number: '1.2-2' }}</td>
+          <td>{{ line.qty * line.unitCost | number: '1.2-2' }}</td>
+          <td>{{ line.vatAmount !== null ? (line.vatAmount | number: '1.2-2') : '-' }}</td>
+          <td>#{{ line.stockBatchId }}</td>
+        </tr>
+      }
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="4"><strong>Total</strong></td>
+        <td><strong>{{ totalCost() | number: '1.2-2' }}</strong></td>
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+  </table>
+} @else if (loading()) {
+  <p class="hint">Loading purchase...</p>
+} @else if (notFound()) {
+  <p class="hint">Purchase not found.</p>
+}
