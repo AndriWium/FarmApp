@@ -1,0 +1,84 @@
+<h1>Blocks</h1>
+
+<label class="toggle">
+  <input type="checkbox" [checked]="showInactive()" (change)="toggleShowInactive()" />
+  Show inactive
+</label>
+
+@if (canManage()) {
+  <form class="inline-form" [formGroup]="createForm" (ngSubmit)="add()">
+    <input formControlName="name" placeholder="Block name" maxlength="100" />
+    <input formControlName="areaHectare" type="number" step="0.01" placeholder="Area (ha)" />
+    <textarea formControlName="note" placeholder="Note (optional)" maxlength="500"></textarea>
+    <button type="submit" [disabled]="createForm.invalid">Add block</button>
+    @if (createForm.controls.name.invalid && createForm.controls.name.touched) {
+      <span class="error">Name is required (max 100 characters).</span>
+    }
+    @if (createForm.controls.areaHectare.invalid && createForm.controls.areaHectare.touched) {
+      <span class="error">Area must be greater than 0.</span>
+    }
+    @if (createError()) {
+      <span class="error">{{ createError() }}</span>
+    }
+  </form>
+}
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Area (ha)</th>
+      <th>Note</th>
+      <th>Status</th>
+      @if (canManage()) {
+        <th></th>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @for (block of blocks(); track block.blockId) {
+      @if (editingId() === block.blockId) {
+        <tr [formGroup]="editForm">
+          <td><input formControlName="name" maxlength="100" /></td>
+          <td><input formControlName="areaHectare" type="number" step="0.01" /></td>
+          <td><textarea formControlName="note" maxlength="500"></textarea></td>
+          <td>
+            <label><input type="checkbox" formControlName="isActive" /> Active</label>
+          </td>
+          @if (canManage()) {
+            <td class="actions">
+              <button type="button" [disabled]="editForm.invalid" (click)="saveEdit(block.blockId)">
+                Save
+              </button>
+              <button type="button" (click)="cancelEdit()">Cancel</button>
+              @if (editError()) {
+                <span class="error">{{ editError() }}</span>
+              }
+            </td>
+          }
+        </tr>
+      } @else {
+        <tr>
+          <td>{{ block.name }}</td>
+          <td>{{ block.areaHectare }}</td>
+          <td>{{ block.note }}</td>
+          <td [class]="block.isActive ? 'status-active' : 'status-inactive'">
+            {{ block.isActive ? 'Active' : 'Inactive' }}
+          </td>
+          @if (canManage()) {
+            <td class="actions">
+              <button type="button" (click)="startEdit(block)">Edit</button>
+              @if (block.isActive) {
+                <button type="button" (click)="deactivate(block)">Deactivate</button>
+              }
+            </td>
+          }
+        </tr>
+      }
+    } @empty {
+      <tr>
+        <td colspan="5">No blocks yet.</td>
+      </tr>
+    }
+  </tbody>
+</table>
