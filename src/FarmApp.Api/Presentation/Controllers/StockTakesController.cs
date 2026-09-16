@@ -44,7 +44,10 @@ public class StockTakesController(IStockTakeService service) : ApiControllerBase
         if (!validation.IsValid) return ValidationProblem(validation);
 
         var result = await service.RecordCountsAsync(id, request, ct);
-        if (result.Error != ServiceError.None) return ErrorResult(result.Error, "stock take line");
+        if (result.Error != ServiceError.None)
+            return result.Detail is not null
+                ? ErrorResult(result.Error, "stock take line", result.Detail)
+                : ErrorResult(result.Error, "stock take line");
 
         return result.Value!;
     }

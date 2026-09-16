@@ -67,6 +67,14 @@ public enum ServiceError
     /// reopen (either it was never closed, or it doesn't exist yet - both read the same way:
     /// there's nothing to reopen).</summary>
     AccountingPeriodNotClosed,
+
+    /// <summary>RecordCountsAsync rejected: at least one submitted StockTakeLineId already has a
+    /// CountedQty. Resubmitting an already-counted line would recompute Variance and fire a
+    /// second RecordBatchAdjustmentAsync, double-adjusting on-hand for that batch (real gap found
+    /// and flagged, not silently worked around, during Phase 5c-2's frontend verification - see
+    /// DECISIONS.md). The frontend already locks counted lines read-only so this shouldn't be
+    /// reachable through the UI; this closes the same hole against direct API use.</summary>
+    StockTakeLineAlreadyCounted,
 }
 
 /// <summary>A service result carrying either a value (Error == None) or a business error.

@@ -79,6 +79,10 @@ public abstract class ApiControllerBase : ControllerBase
             statusCode: StatusCodes.Status409Conflict,
             title: "Period not closed",
             detail: "This accounting period is not closed - there is nothing to reopen."),
+        ServiceError.StockTakeLineAlreadyCounted => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Line already counted",
+            detail: "One or more of these stock take lines already has a recorded count - it can only be counted once."),
         _ => Problem(statusCode: StatusCodes.Status500InternalServerError),
     };
 
@@ -93,6 +97,7 @@ public abstract class ApiControllerBase : ControllerBase
         ServiceError.SeasonAlreadyClosed => Problem(statusCode: StatusCodes.Status409Conflict, title: "Season already closed", detail: detail),
         ServiceError.SeasonEstimateNotSet => Problem(statusCode: StatusCodes.Status409Conflict, title: "Season estimate not set", detail: detail),
         ServiceError.AccountingPeriodTillSessionsOpen => Problem(statusCode: StatusCodes.Status409Conflict, title: "Till sessions still open", detail: detail),
+        ServiceError.StockTakeLineAlreadyCounted => Problem(statusCode: StatusCodes.Status409Conflict, title: "Line already counted", detail: detail),
         _ => ErrorResult(error, entityName),
     };
 }

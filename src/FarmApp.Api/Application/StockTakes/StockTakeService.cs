@@ -81,11 +81,20 @@ public class StockTakeService(
         var lines = await lineRepo.GetByStockTakeIdAsync(stockTakeId, ct); // tracked
         var lineById = lines.ToDictionary(l => l.StockTakeLineId);
 
-        // Validate every StockTakeLineId belongs to this stock take before mutating anything.
+        // Validate every StockTakeLineId belongs to this stock take, and that none of them has
+        // already been counted, before mutating anything. Without this second check, resubmitting
+        // an already-counted line would recompute Variance and fire a second reconciling
+        // adjustment, double-adjusting the batch's on-hand (real gap found during Phase 5c-2's
+        // frontend verification, closed here - see DECISIONS.md). The frontend already locks
+        // counted lines read-only, so this guards direct API use, not the normal UI path.
         foreach (var count in request.Counts)
         {
-            if (!lineById.ContainsKey(count.StockTakeLineId))
+            if (!lineById.TryGetValue(count.StockTakeLineId, out var existing))
                 return ServiceResult<StockTakeDto>.Fail(ServiceError.NotFound);
+
+            if (existing.CountedQty is not null)
+                return ServiceResult<StockTakeDto>.Fail(ServiceError.StockTakeLineAlreadyCounted,
+                    $"Stock take line {existing.StockTakeLineId} was already counted (CountedQty = {existing.CountedQty}).");
         }
 
         foreach (var count in request.Counts)
