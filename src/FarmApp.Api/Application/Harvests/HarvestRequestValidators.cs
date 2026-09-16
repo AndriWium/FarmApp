@@ -8,7 +8,6 @@ public class CreateHarvestLineRequestValidator : AbstractValidator<CreateHarvest
     {
         RuleFor(x => x.ProductId).GreaterThan(0);
         RuleFor(x => x.QtyKg).GreaterThan(0);
-        RuleFor(x => x.UnitCost).GreaterThanOrEqualTo(0);
         RuleFor(x => x.ShelfLifeDays).GreaterThan(0);
     }
 }

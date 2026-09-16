@@ -38,9 +38,28 @@ public class HarvestService(
     {
         // Validate every reference before writing anything - same discipline as
         // ActivityService/ProducePurchaseService.
-        var season = await seasonRepo.GetByIdAsync(request.SeasonId, s => new { s.PlantingId }, ct);
+        var season = await seasonRepo.GetByIdAsync(
+            request.SeasonId, s => new { s.PlantingId, s.Status, s.EstimatedCostPerKg }, ct);
         if (season is null)
             return ServiceResult<HarvestDto>.Fail(ServiceError.NotFound);
+
+        // Doc 09, Phase 4a: a closed season's true-up has already been posted against whatever
+        // was harvested up to that point - no further harvest can be recorded against it.
+        if (season.Status == SeasonStatus.Closed)
+            return ServiceResult<HarvestDto>.Fail(
+                ServiceError.SeasonAlreadyClosed, "This season is closed - harvests can no longer be recorded against it.");
+
+        // The batch's cost is always the season's current estimate, snapshotted at the moment of
+        // harvest (doc 09) - never a caller-typed number (Phase 4a, see DECISIONS.md). No
+        // estimate yet is a real gap, surfaced as a clear rejection rather than silently
+        // defaulting to some arbitrary cost.
+        if (season.EstimatedCostPerKg is null)
+            return ServiceResult<HarvestDto>.Fail(
+                ServiceError.SeasonEstimateNotSet,
+                "This season has no EstimatedCostPerKg yet - set ExpectedTotalCost and ExpectedYieldKg " +
+                "on the season before recording a harvest.");
+
+        var estimatedCostPerKg = season.EstimatedCostPerKg.Value;
 
         // Trace SeasonId -> PlantingId -> BlockId (task brief) to know which block this harvest
         // is happening on, for the withholding-lock check below. Season.PlantingId is itself a
@@ -123,7 +142,7 @@ public class HarvestService(
                 var batchResult = await stockBatchService.CreateAsync(new CreateStockBatchRequest(
                     line.ProductId, line.GradeId, StockSource.Harvest,
                     HarvestId: harvest.HarvestId, PurchaseLineId: null,
-                    harvest.Date, line.QtyKg, lineRequest.UnitCost, lineRequest.ShelfLifeDays), ct);
+                    harvest.Date, line.QtyKg, estimatedCostPerKg, lineRequest.ShelfLifeDays), ct);
 
                 if (batchResult.Error != ServiceError.None)
                 {
@@ -133,7 +152,7 @@ public class HarvestService(
                 }
 
                 lineDtos.Add(new HarvestLineDto(
-                    line.HarvestLineId, line.ProductId, line.GradeId, line.QtyKg, lineRequest.UnitCost,
+                    line.HarvestLineId, line.ProductId, line.GradeId, line.QtyKg, estimatedCostPerKg,
                     batchResult.Value!.StockBatchId));
             }
 

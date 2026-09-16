@@ -39,6 +39,20 @@ public enum ServiceError
     /// override, not a hard rejection with no way through - supplying an override reason on a
     /// retried request proceeds instead of failing again.</summary>
     WithholdingLocked,
+
+    /// <summary>UpdateAsync (Season)/CreateHarvestAsync/PreviewCloseAsync/ConfirmCloseAsync
+    /// rejected: this Season's Status is already Closed (doc 09, Phase 4a) - estimates can't be
+    /// edited, harvests can't be recorded, and a season can only be closed (true-up posted)
+    /// once.</summary>
+    SeasonAlreadyClosed,
+
+    /// <summary>CreateHarvestAsync rejected: this Season has no EstimatedCostPerKg yet (doc 09,
+    /// Phase 4a) - ExpectedTotalCost/ExpectedYieldKg haven't both been set on the season, so
+    /// there's no estimate to snapshot into the harvest's StockBatch.UnitCost. The default path
+    /// when an estimate exists always uses it; this is the "no estimate set" gap surfaced as a
+    /// clear, actionable rejection rather than silently falling back to some arbitrary number
+    /// (see DECISIONS.md).</summary>
+    SeasonEstimateNotSet,
 }
 
 /// <summary>A service result carrying either a value (Error == None) or a business error.

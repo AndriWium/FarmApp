@@ -57,6 +57,15 @@ public abstract class ApiControllerBase : ControllerBase
             title: "Withholding period active",
             detail: "This harvest falls inside a chemical withholding-period lock on the block - " +
                      "supply a WithholdingOverrideReason to proceed anyway."),
+        ServiceError.SeasonAlreadyClosed => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Season already closed",
+            detail: $"This {entityName} is already closed - it can only be closed once."),
+        ServiceError.SeasonEstimateNotSet => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Season estimate not set",
+            detail: $"This {entityName} has no cost estimate yet - set ExpectedTotalCost and " +
+                     "ExpectedYieldKg on the season before recording a harvest."),
         _ => Problem(statusCode: StatusCodes.Status500InternalServerError),
     };
 
@@ -68,6 +77,8 @@ public abstract class ApiControllerBase : ControllerBase
         ServiceError.InsufficientStock => Problem(statusCode: StatusCodes.Status409Conflict, title: "Insufficient stock", detail: detail),
         ServiceError.PaymentMismatch => Problem(statusCode: StatusCodes.Status409Conflict, title: "Payment mismatch", detail: detail),
         ServiceError.WithholdingLocked => Problem(statusCode: StatusCodes.Status409Conflict, title: "Withholding period active", detail: detail),
+        ServiceError.SeasonAlreadyClosed => Problem(statusCode: StatusCodes.Status409Conflict, title: "Season already closed", detail: detail),
+        ServiceError.SeasonEstimateNotSet => Problem(statusCode: StatusCodes.Status409Conflict, title: "Season estimate not set", detail: detail),
         _ => ErrorResult(error, entityName),
     };
 }

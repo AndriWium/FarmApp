@@ -107,6 +107,7 @@ builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbCon
 // Domain services — defined in FarmApp.Domain, wired up here per doc 11's dependency-inversion rule.
 builder.Services.AddScoped<IStockAllocationService, StockAllocationService>();
 builder.Services.AddScoped<ISaleLineCalculator, SaleLineCalculator>();
+builder.Services.AddScoped<ISeasonCostCalculator, SeasonCostCalculator>();
 builder.Services.AddScoped<IWithholdingLockCalculator, WithholdingLockCalculator>();
 
 builder.Services.AddScoped<IGradeService, GradeService>();
