@@ -151,6 +151,10 @@ builder.Services.AddScoped<IExpenseService, ExpenseService>();
 // Reports bypass the usual repository/service layering (doc 11) - a plain concrete query class,
 // not an interface+implementation pair, registered directly.
 builder.Services.AddScoped<ReportQueries>();
+// The farming report's per-season row needs live repository/calculator access for an open
+// season's cost-to-date (doc 11's "light EF query" half of the reporting exception) - also a
+// plain concrete class, same reasoning as ReportQueries.
+builder.Services.AddScoped<SeasonFarmingReportService>();
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();

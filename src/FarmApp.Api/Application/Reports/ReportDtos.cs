@@ -34,3 +34,34 @@ public record ExpenseCategoryTotalDto(int ExpenseCategoryId, string CategoryName
 public record IncomeStatementDto(
     decimal Sales, decimal Cos, decimal GrossProfit, decimal Wastage,
     List<ExpenseCategoryTotalDto> ExpensesByCategory, decimal TotalExpenses, decimal NetProfit);
+
+// ---- Farming report (doc 04 §4, Phase 4c) ----
+
+/// <summary>Per block/season: costs to date, kg harvested, cost per kg, revenue attributable and
+/// margin (doc 04 §4's "should I plant this again?" table). For a Closed season these figures are
+/// the posted true-up (SeasonCostSummary) - IsEstimate false. For an Open season they're computed
+/// live via ISeasonCostCalculator from the same accumulator queries SeasonCostingService uses,
+/// rather than waiting for close (task brief) - IsEstimate true. RevenueAttributed is always an
+/// approximation (see ReportQueries.GetSeasonRevenueAttributedAsync/DECISIONS.md) regardless of
+/// season status, since the schema has no exact SaleLine-to-batch link either way.</summary>
+public record SeasonFarmingReportDto(
+    int SeasonId, string SeasonName, string Status,
+    decimal InputCost, decimal LabourCost, decimal OverheadAllocated, decimal TotalCost,
+    decimal KgHarvested, decimal CostPerKg,
+    decimal RevenueAttributed, decimal Margin, bool IsEstimate);
+
+/// <summary>One product/grade line of doc 04 §4's harvest summary - this season's kg vs. the same
+/// crop's most recent earlier season (null when no prior season exists for this crop yet).</summary>
+public record HarvestSummaryRowDto(
+    int ProductId, string ProductName, int? GradeId, string? GradeName,
+    decimal CurrentSeasonKg, decimal? PriorSeasonKg);
+
+/// <summary>One input item's usage/cost for doc 04 §4's input usage summary, over whatever
+/// season/date-range filter the caller supplied.</summary>
+public record InputUsageRowDto(int InputItemId, string InputItemName, decimal QtyUsed, decimal Cost);
+
+/// <summary>This period's total rainfall vs. the average of the same calendar month across every
+/// OTHER year with data (doc 04 §4). HistoricalAverageMm/YearsCompared are null/0 when no other
+/// year has any reading for this month yet - a young dataset legitimately has nothing to compare
+/// against (task brief: "return null/empty rather than erroring").</summary>
+public record RainfallComparisonDto(int Year, int Month, decimal ThisPeriodMm, decimal? HistoricalAverageMm, int YearsCompared);
