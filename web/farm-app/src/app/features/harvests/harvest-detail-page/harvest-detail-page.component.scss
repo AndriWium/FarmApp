@@ -1,0 +1,44 @@
+@use '../../../shared/styles/list-page';
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1rem;
+  margin-bottom: 1.5rem;
+
+  dt {
+    color: #666;
+    font-size: 0.85rem;
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+// Surfaced prominently - this is exactly the kind of record a food-safety review needs to find
+// easily (task brief), not buried in a plain text field among the other detail rows.
+.override-banner {
+  margin: 1rem 0;
+  padding: 0.9rem 1.1rem;
+  border: 2px solid #c0392b;
+  border-radius: 8px;
+  background: #fdecea;
+  color: #7a1f13;
+
+  p {
+    margin: 0.4rem 0 0;
+    font-style: italic;
+  }
+}
+
+.override-banner-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+}
+
+.override-icon {
+  font-size: 1.3rem;
+}

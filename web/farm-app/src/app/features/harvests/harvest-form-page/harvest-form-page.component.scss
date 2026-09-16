@@ -1,0 +1,103 @@
+@use '../../../shared/styles/list-page';
+
+.form-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin: 1rem 0;
+
+  button {
+    padding: 0.45rem 0.9rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+
+    &:hover {
+      background: #f2f2f2;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+
+  button:last-child {
+    border-color: #2f6b3a;
+    background: #2f6b3a;
+    color: #fff;
+
+    &:disabled {
+      background: #9fb8a3;
+      border-color: #9fb8a3;
+    }
+  }
+}
+
+.success {
+  margin-top: 1.5rem;
+  padding: 0.9rem;
+  border: 1px solid #b7d7bb;
+  border-radius: 6px;
+  background: #f2f9f2;
+}
+
+.override-note {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #f0c36d;
+  border-radius: 4px;
+  background: #fff8e8;
+  color: #7a5b00;
+  font-size: 0.9rem;
+}
+
+// The core food-safety warning banner (doc 05 §5) - deliberately large, high-contrast, and shown
+// above the line-item table, not a small inline note easy to miss.
+.withholding-banner {
+  margin: 1rem 0;
+  padding: 1rem 1.2rem;
+  border: 2px solid #c0392b;
+  border-radius: 8px;
+  background: #fdecea;
+  color: #7a1f13;
+
+  p {
+    margin: 0.4rem 0 0;
+  }
+}
+
+.withholding-banner-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+}
+
+.withholding-icon {
+  font-size: 1.3rem;
+}
+
+// The override panel is styled to feel like a deliberate "yes, I understand" action, not just
+// another quiet field sitting alongside Notes/PickedBy.
+.override-panel {
+  margin-top: 0.9rem;
+  padding: 0.8rem 1rem;
+  border: 2px dashed #c0392b;
+  border-radius: 6px;
+  background: #fff;
+
+  label {
+    display: block;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 3.2rem;
+    margin-top: 0.4rem;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #c0392b;
+    border-radius: 4px;
+    font: inherit;
+  }
+}

@@ -1,0 +1,53 @@
+<h1>Harvests</h1>
+<p class="hint">Every harvest recorded against a season - a food-safety review starts here for any override flags.</p>
+
+<p><a routerLink="/harvests/new">+ Record a harvest</a></p>
+
+<form class="inline-form">
+  <label>
+    Season
+    <select [ngModel]="seasonFilter()" (ngModelChange)="seasonFilter.set($event)" name="seasonFilter">
+      <option [ngValue]="0">All seasons</option>
+      @for (season of seasons(); track season.seasonId) {
+        <option [ngValue]="season.seasonId">{{ seasonLabel(season.seasonId) }}</option>
+      }
+    </select>
+  </label>
+</form>
+
+@if (loading()) {
+  <p>Loading...</p>
+} @else {
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Season</th>
+        <th>Products</th>
+        <th>Total kg</th>
+        <th>Override?</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (harvest of filteredHarvests(); track harvest.harvestId) {
+        <tr [class.overridden]="!!harvest.withholdingOverrideReason">
+          <td><a [routerLink]="['/harvests', harvest.harvestId]">{{ harvest.date | date: 'yyyy-MM-dd' }}</a></td>
+          <td>{{ seasonLabel(harvest.seasonId) }}</td>
+          <td>{{ productSummary(harvest) }}</td>
+          <td>{{ totalKg(harvest) }}</td>
+          <td>
+            @if (harvest.withholdingOverrideReason) {
+              <span class="override-flag">&#9888; withholding override</span>
+            } @else {
+              -
+            }
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="5">No harvests recorded yet.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

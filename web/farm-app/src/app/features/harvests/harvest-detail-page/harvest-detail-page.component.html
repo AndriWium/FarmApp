@@ -1,0 +1,60 @@
+<p><a routerLink="/harvests">&larr; Back to harvests</a></p>
+
+@if (loading()) {
+  <p>Loading...</p>
+} @else if (notFound()) {
+  <p class="error">Harvest not found.</p>
+} @else {
+  <!-- Deliberately a plain @if nested inside @else, not `@else if (harvest(); as h)` - see
+  DECISIONS.md Phase 5d-2 for the Angular control-flow bug that pattern hits. -->
+  @if (harvest(); as h) {
+    <h1>Harvest #{{ h.harvestId }}</h1>
+
+    @if (h.withholdingOverrideReason) {
+      <div class="override-banner" role="alert">
+        <div class="override-banner-heading">
+          <span class="override-icon">&#9888;</span>
+          <strong>Recorded under a chemical withholding-period override</strong>
+        </div>
+        <p>"{{ h.withholdingOverrideReason }}"</p>
+      </div>
+    }
+
+    <dl class="detail-grid">
+      <dt>Season</dt>
+      <dd>{{ seasonLabel(h.seasonId) }}</dd>
+      <dt>Date</dt>
+      <dd>{{ h.date | date: 'yyyy-MM-dd' }}</dd>
+      <dt>Picked By</dt>
+      <dd>{{ h.pickedBy ?? '-' }}</dd>
+      <dt>Notes</dt>
+      <dd>{{ h.notes || '-' }}</dd>
+      <dt>Total kg</dt>
+      <dd>{{ totalKg(h) }}</dd>
+    </dl>
+
+    <h2>Lines</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Grade</th>
+          <th>Qty (kg)</th>
+          <th>Unit Cost</th>
+          <th>Stock Batch</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (line of h.lines; track line.harvestLineId) {
+          <tr>
+            <td>{{ productName(line.productId) }}</td>
+            <td>{{ gradeName(line.gradeId) }}</td>
+            <td>{{ line.qtyKg }}</td>
+            <td>{{ line.unitCost | number: '1.2-2' }}</td>
+            <td>#{{ line.stockBatchId }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+}

@@ -1,0 +1,11 @@
+@use '../../../shared/styles/list-page';
+
+tr.overridden td {
+  background: #fdecea;
+}
+
+.override-flag {
+  color: #b3261e;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
