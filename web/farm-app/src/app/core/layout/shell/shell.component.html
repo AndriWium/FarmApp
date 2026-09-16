@@ -1,0 +1,24 @@
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">FarmApp</div>
+    <nav>
+      <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+      <!-- Grades/Blocks/Products/Stock/POS/Reports links get added in Phase 5b as those
+           screens exist - this is deliberately just Dashboard for now. -->
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <span class="spacer"></span>
+      @if (auth.currentUser(); as user) {
+        <span class="user">{{ user.userName }} ({{ user.role }})</span>
+      }
+      <button type="button" (click)="auth.logout()">Log out</button>
+    </header>
+
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>
