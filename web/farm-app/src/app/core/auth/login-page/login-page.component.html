@@ -1,0 +1,24 @@
+<div class="login-page">
+  <form class="login-card" [formGroup]="form" (ngSubmit)="submit()">
+    <h1>FarmApp</h1>
+    <h2>Log in</h2>
+
+    <label>
+      Username
+      <input formControlName="userName" type="text" autocomplete="username" />
+    </label>
+
+    <label>
+      Password
+      <input formControlName="password" type="password" autocomplete="current-password" />
+    </label>
+
+    <button type="submit" [disabled]="form.invalid || submitting()">
+      {{ submitting() ? 'Logging in…' : 'Log in' }}
+    </button>
+
+    @if (errorMessage()) {
+      <p class="error">{{ errorMessage() }}</p>
+    }
+  </form>
+</div>
