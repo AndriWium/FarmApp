@@ -1,0 +1,18 @@
+@use '../../../shared/styles/list-page';
+
+.create-form {
+  flex-direction: column;
+  align-items: flex-start;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+}
+
+.role-description {
+  margin: 0.2rem 0 0;
+  max-width: 42rem;
+}

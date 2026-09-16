@@ -355,6 +355,14 @@ export const routes: Routes = [
             (m) => m.CashDebtorsPageComponent,
           ),
       },
+      {
+        path: 'users',
+        canActivate: [ownerGuard],
+        loadComponent: () =>
+          import('./features/users/user-page/user-page.component').then(
+            (m) => m.UserPageComponent,
+          ),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

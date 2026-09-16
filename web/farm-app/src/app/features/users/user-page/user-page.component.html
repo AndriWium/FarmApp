@@ -1,0 +1,100 @@
+<h1>Users</h1>
+
+<label class="toggle">
+  <input type="checkbox" [checked]="showInactive()" (change)="toggleShowInactive()" />
+  Show inactive
+</label>
+
+<form class="inline-form create-form" [formGroup]="createForm" (ngSubmit)="add()">
+  <input formControlName="userName" placeholder="Username" maxlength="50" />
+  <input formControlName="password" type="password" placeholder="Initial password (min 8 chars)" />
+  <label>
+    Role
+    <select formControlName="role">
+      @for (role of roles; track role) {
+        <option [value]="role">{{ role }}</option>
+      }
+    </select>
+  </label>
+  <button type="submit" [disabled]="createForm.invalid">Create user</button>
+  @if (createForm.controls.userName.invalid && createForm.controls.userName.touched) {
+    <span class="error">Username is required (max 50 characters).</span>
+  }
+  @if (createForm.controls.password.invalid && createForm.controls.password.touched) {
+    <span class="error">Password must be at least 8 characters.</span>
+  }
+  @if (createError()) {
+    <span class="error">{{ createError() }}</span>
+  }
+  <p class="hint role-description">{{ roleDescriptions[createForm.controls.role.value] }}</p>
+</form>
+
+<table>
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Role</th>
+      <th>Status</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (user of users(); track user.appUserId) {
+      <tr>
+        <td>{{ user.userName }}</td>
+        <td>
+          @if (changingRoleId() === user.appUserId) {
+            <select [ngModel]="newRole()" (ngModelChange)="newRole.set($event)" [ngModelOptions]="{ standalone: true }">
+              @for (role of roles; track role) {
+                <option [value]="role">{{ role }}</option>
+              }
+            </select>
+          } @else {
+            {{ user.role }}
+          }
+        </td>
+        <td [class]="user.isActive ? 'status-active' : 'status-inactive'">
+          {{ user.isActive ? 'Active' : 'Inactive' }}
+        </td>
+        <td class="actions">
+          @if (changingRoleId() === user.appUserId) {
+            <button type="button" (click)="saveRole(user)">Save role</button>
+            <button type="button" (click)="cancelChangeRole()">Cancel</button>
+          } @else if (resettingPasswordId() === user.appUserId) {
+            <input
+              type="password"
+              placeholder="New password (min 8 chars)"
+              [ngModel]="newPassword()"
+              (ngModelChange)="newPassword.set($event)"
+              [ngModelOptions]="{ standalone: true }"
+            />
+            <button type="button" (click)="saveNewPassword(user)">Set password</button>
+            <button type="button" (click)="cancelResetPassword()">Cancel</button>
+          } @else {
+            <button type="button" (click)="startChangeRole(user)">Change role</button>
+            <button type="button" (click)="startResetPassword(user)">Reset password</button>
+            @if (user.isActive) {
+              <button type="button" (click)="setActive(user, false)">Deactivate</button>
+            } @else {
+              <button type="button" (click)="setActive(user, true)">Reactivate</button>
+            }
+          }
+        </td>
+      </tr>
+      @if (changingRoleId() === user.appUserId && roleError()) {
+        <tr>
+          <td colspan="4"><span class="error">{{ roleError() }}</span></td>
+        </tr>
+      }
+      @if (resettingPasswordId() === user.appUserId && passwordError()) {
+        <tr>
+          <td colspan="4"><span class="error">{{ passwordError() }}</span></td>
+        </tr>
+      }
+    } @empty {
+      <tr>
+        <td colspan="4">No users yet.</td>
+      </tr>
+    }
+  </tbody>
+</table>

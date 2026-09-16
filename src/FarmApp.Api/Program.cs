@@ -33,6 +33,7 @@ using FarmApp.Api.Application.StockTakes;
 using FarmApp.Api.Application.Suppliers;
 using FarmApp.Api.Application.Sales;
 using FarmApp.Api.Application.TillSessions;
+using FarmApp.Api.Application.Users;
 using FarmApp.Api.Middleware;
 using FarmApp.Domain.Entities;
 using FarmApp.Domain.Enums;
@@ -114,6 +115,7 @@ builder.Services.AddScoped<IExpenseCategoryRepository, ExpenseCategoryRepository
 builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 builder.Services.AddScoped<IAccountingPeriodRepository, AccountingPeriodRepository>();
 builder.Services.AddScoped<IRoadmapItemRepository, RoadmapItemRepository>();
+builder.Services.AddScoped<IAppUserRepository, AppUserRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
 // Domain services — defined in FarmApp.Domain, wired up here per doc 11's dependency-inversion rule.
@@ -155,6 +157,7 @@ builder.Services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<IAccountingPeriodCloseService, AccountingPeriodCloseService>();
 builder.Services.AddScoped<IRoadmapItemService, RoadmapItemService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // Reports bypass the usual repository/service layering (doc 11) - a plain concrete query class,
 // not an interface+implementation pair, registered directly.
@@ -215,6 +218,9 @@ builder.Services.AddScoped<IValidator<CreateExpenseRequest>, CreateExpenseReques
 builder.Services.AddScoped<IValidator<ReopenMonthRequest>, ReopenMonthRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateRoadmapItemRequest>, CreateRoadmapItemRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateRoadmapItemRequest>, UpdateRoadmapItemRequestValidator>();
+builder.Services.AddScoped<IValidator<CreateUserRequest>, CreateUserRequestValidator>();
+builder.Services.AddScoped<IValidator<UpdateUserRoleRequest>, UpdateUserRoleRequestValidator>();
+builder.Services.AddScoped<IValidator<ResetPasswordRequest>, ResetPasswordRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();
 
@@ -243,7 +249,11 @@ builder.Services.AddAuthorizationBuilder()
     // reports this phase adds (income statement/sales analysis surface margins and COGS, which
     // read as owner-level financial detail, not something a Cashier/Worker needs day-to-day -
     // matches doc 13's table, which maps CanViewReports to Owner only).
-    .AddPolicy("CanViewReports", p => p.RequireRole("Owner"));
+    .AddPolicy("CanViewReports", p => p.RequireRole("Owner"))
+    // doc 13's policy table names this one too but nothing had wired it up before now (the same
+    // situation CanViewReports was in before Phase 4b) - gates the new user-management endpoints
+    // (UsersController) themselves. Owner only, per the task brief's explicit instruction.
+    .AddPolicy("CanManageUsers", p => p.RequireRole("Owner"));
 
 builder.Services.AddControllers()
     // InputItem.Category is the first enum exposed through the API; serialize enums as
