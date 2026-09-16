@@ -180,6 +180,20 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'sales',
+        loadComponent: () =>
+          import('./features/sales/sale-list-page/sale-list-page.component').then(
+            (m) => m.SaleListPageComponent,
+          ),
+      },
+      {
+        path: 'sales/:id',
+        loadComponent: () =>
+          import('./features/sales/sale-detail-page/sale-detail-page.component').then(
+            (m) => m.SaleDetailPageComponent,
+          ),
+      },
+      {
         path: 'stock-movements',
         loadComponent: () =>
           import('./features/stock-movements/movement-hub-page/movement-hub-page.component').then(

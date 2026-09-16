@@ -1,0 +1,85 @@
+<p><a routerLink="/sales">&larr; Back to sale history</a></p>
+
+@if (loading()) {
+  <p class="hint">Loading sale...</p>
+} @else if (notFound()) {
+  <p class="hint">Sale not found.</p>
+} @else if (sale()) {
+  @if (sale(); as sale) {
+  <h1>
+    Sale #{{ sale.saleId }}
+    <span [class]="sale.status === 'Refunded' ? 'status-badge refunded' : 'status-badge complete'">{{ sale.status }}</span>
+  </h1>
+  <p class="meta">
+    <strong>Date:</strong> {{ sale.dateTime | date: 'medium' }}
+    &nbsp;|&nbsp;
+    <strong>Channel:</strong> {{ sale.channel }}
+    &nbsp;|&nbsp;
+    <strong>Customer:</strong> {{ customerName(sale.customerId) }}
+  </p>
+  @if (sale.notes) {
+    <p class="meta"><strong>Notes:</strong> {{ sale.notes }}</p>
+  }
+
+  <table class="lines-table">
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Qty</th>
+        <th>Unit price</th>
+        <th>Discount</th>
+        <th>Cost at sale</th>
+        <th>Line total</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (line of sale.lines; track line.saleLineId) {
+        <tr>
+          <td>
+            {{ productName(line.productId) }}
+            @if (line.gradeId !== null) {
+              <div class="hint">{{ gradeName(line.gradeId) }}</div>
+            }
+            <div class="hint">{{ packSizeName(line.packSizeId) }}</div>
+          </td>
+          <td>{{ line.qty | number: '1.0-3' }}</td>
+          <td>{{ line.unitPrice | number: '1.2-2' }}</td>
+          <td>{{ line.discountAmount | number: '1.2-2' }}{{ line.discountReason ? ' (' + line.discountReason + ')' : '' }}</td>
+          <td>{{ line.costAtSale | number: '1.2-2' }}</td>
+          <td>{{ line.qty * line.unitPrice - line.discountAmount | number: '1.2-2' }}</td>
+        </tr>
+      }
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="5"><strong>Total</strong></td>
+        <td><strong>{{ saleTotal() | number: '1.2-2' }}</strong></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <h2>Payments</h2>
+  <table class="payments-table">
+    <thead>
+      <tr>
+        <th>Method</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (payment of sale.payments; track payment.salePaymentId) {
+        <tr>
+          <td>{{ payment.method }}</td>
+          <td>{{ payment.amount | number: '1.2-2' }}</td>
+        </tr>
+      }
+    </tbody>
+    <tfoot>
+      <tr>
+        <td><strong>Total</strong></td>
+        <td><strong>{{ paymentsTotal() | number: '1.2-2' }}</strong></td>
+      </tr>
+    </tfoot>
+  </table>
+  }
+}

@@ -1,0 +1,54 @@
+<h1>Sale History</h1>
+
+<div class="filters">
+  <label>
+    From
+    <input type="date" [ngModel]="dateFrom()" (ngModelChange)="dateFrom.set($event || null)" name="dateFrom" />
+  </label>
+  <label>
+    To
+    <input type="date" [ngModel]="dateTo()" (ngModelChange)="dateTo.set($event || null)" name="dateTo" />
+  </label>
+  <label>
+    Till session
+    <select [ngModel]="tillSessionFilter()" (ngModelChange)="onTillSessionFilterChange($event)" name="tillSessionFilter">
+      <option [ngValue]="null">All sessions</option>
+      @for (session of tillSessions(); track session.tillSessionId) {
+        <option [ngValue]="session.tillSessionId">{{ tillSessionLabel(session.tillSessionId) }}</option>
+      }
+    </select>
+  </label>
+</div>
+
+@if (loading()) {
+  <p class="hint">Loading sales...</p>
+} @else {
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Channel</th>
+        <th>Total</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (sale of sortedSales(); track sale.saleId) {
+        <tr>
+          <td>{{ sale.dateTime | date: 'short' }}</td>
+          <td>{{ sale.channel }}</td>
+          <td>{{ saleTotal(sale) | number: '1.2-2' }}</td>
+          <td [class]="sale.status === 'Refunded' ? 'status-refunded' : 'status-complete'">{{ sale.status }}</td>
+          <td class="actions">
+            <a [routerLink]="['/sales', sale.saleId]">View</a>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="5">No sales match these filters.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

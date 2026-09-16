@@ -1,0 +1,46 @@
+@use '../../../shared/styles/list-page';
+
+h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.4rem;
+}
+
+h2 {
+  font-size: 1rem;
+  margin: 1.5rem 0 0.6rem;
+}
+
+.meta {
+  color: #444;
+  margin: 0.3rem 0;
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+
+  &.complete {
+    background: #2f6b3a;
+    color: #fff;
+  }
+
+  &.refunded {
+    background: #b3261e;
+    color: #fff;
+  }
+}
+
+.lines-table,
+.payments-table {
+  margin-top: 0.8rem;
+}
+
+.payments-table {
+  max-width: 360px;
+}

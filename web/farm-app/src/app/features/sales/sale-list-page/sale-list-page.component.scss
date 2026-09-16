@@ -1,0 +1,33 @@
+@use '../../../shared/styles/list-page';
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+  }
+
+  input,
+  select {
+    padding: 0.45rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font: inherit;
+  }
+}
+
+.status-complete {
+  color: #2f6b3a;
+}
+
+.status-refunded {
+  color: #b3261e;
+  font-weight: 600;
+}
