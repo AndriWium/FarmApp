@@ -2,6 +2,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { extractErrorMessage } from '../../../shared/http-error.util';
 import { CustomerDto } from '../../customers/customer.model';
 import { CustomersApiService } from '../../customers/customers-api.service';
@@ -62,7 +63,7 @@ interface BasketLine {
  */
 @Component({
   selector: 'app-pos-page',
-  imports: [DatePipe, DecimalPipe, FormsModule],
+  imports: [DatePipe, DecimalPipe, FormsModule, RouterLink],
   templateUrl: './pos-page.component.html',
   styleUrl: './pos-page.component.scss',
 })

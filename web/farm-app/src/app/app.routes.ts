@@ -173,6 +173,13 @@ export const routes: Routes = [
           import('./features/sales/pos-page/pos-page.component').then((m) => m.PosPageComponent),
       },
       {
+        path: 'till-sessions/:id/close',
+        loadComponent: () =>
+          import('./features/till-sessions/till-close-page/till-close-page.component').then(
+            (m) => m.TillClosePageComponent,
+          ),
+      },
+      {
         path: 'stock-movements',
         loadComponent: () =>
           import('./features/stock-movements/movement-hub-page/movement-hub-page.component').then(

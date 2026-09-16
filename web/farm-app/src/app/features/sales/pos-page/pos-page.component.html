@@ -56,6 +56,7 @@
         }
       </select>
     </label>
+    <a [routerLink]="['/till-sessions', tillSession()!.tillSessionId, 'close']" class="link">Close till</a>
     <button type="button" class="link" (click)="changeSession()">Change session</button>
   </div>
 

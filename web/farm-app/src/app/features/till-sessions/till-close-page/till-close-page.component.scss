@@ -1,0 +1,138 @@
+@use '../../../shared/styles/list-page';
+
+h1 {
+  margin-bottom: 0.3rem;
+}
+
+.sales-so-far {
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  font-size: 1rem;
+  margin: 0 0 0.8rem;
+}
+
+.close-form,
+.close-result {
+  max-width: 480px;
+  padding: 1.2rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 0.9rem;
+    font-size: 0.9rem;
+  }
+
+  input,
+  textarea {
+    padding: 0.55rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font: inherit;
+  }
+
+  textarea {
+    min-height: 3.5rem;
+    resize: vertical;
+  }
+
+  button {
+    padding: 0.55rem 1rem;
+    border: 1px solid #2f6b3a;
+    border-radius: 6px;
+    background: #2f6b3a;
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+
+    &:disabled {
+      background: #9fb8a3;
+      border-color: #9fb8a3;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// Over/short is the whole point of this screen (task brief: "make an over/short difference
+// visually obvious... don't bury it in a data table") - a coloured panel border/background plus
+// a coloured badge next to the number, not just plain text sitting in a table cell.
+.close-result {
+  &.even {
+    border-color: #cfe0cf;
+    background: #f4f8f4;
+  }
+
+  &.over {
+    border-color: #f3c98b;
+    background: #fdf3e2;
+  }
+
+  &.short {
+    border-color: #f1a9a0;
+    background: #fdecea;
+  }
+}
+
+dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem 1rem;
+  margin: 0;
+}
+
+dt {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #666;
+}
+
+dd {
+  margin: 0;
+}
+
+.difference {
+  font-size: 1.2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+
+  &.even {
+    background: #2f6b3a;
+    color: #fff;
+  }
+
+  &.over {
+    background: #b8730f;
+    color: #fff;
+  }
+
+  &.short {
+    background: #b3261e;
+    color: #fff;
+  }
+}
+
+.status-complete {
+  color: #2f6b3a;
+}
+
+.status-refunded {
+  color: #b3261e;
+}

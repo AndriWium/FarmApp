@@ -1,0 +1,117 @@
+<p><a routerLink="/pos">&larr; Back to Sell</a></p>
+
+@if (loading()) {
+  <p class="hint">Loading till session...</p>
+} @else if (notFound()) {
+  <p class="hint">Till session not found.</p>
+} @else if (session()) {
+  @if (session(); as session) {
+  <h1>Close till - {{ locationName(session.locationId) }}</h1>
+  <p class="hint">Session opened {{ session.openedAt | date: 'short' }}</p>
+
+  <section class="sales-so-far">
+    <h2>Sales so far ({{ completeSales().length }})</h2>
+    @if (sales().length === 0) {
+      <p class="hint">No sales recorded in this session yet.</p>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Channel</th>
+            <th>Total</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (sale of sales(); track sale.saleId) {
+            <tr>
+              <td>{{ sale.dateTime | date: 'shortTime' }}</td>
+              <td>{{ sale.channel }}</td>
+              <td>{{ saleTotal(sale) | number: '1.2-2' }}</td>
+              <td [class]="sale.status === 'Refunded' ? 'status-refunded' : 'status-complete'">{{ sale.status }}</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2"><strong>Total (Complete sales)</strong></td>
+            <td colspan="2"><strong>{{ salesTotal() | number: '1.2-2' }}</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+    }
+  </section>
+
+  @if (!isClosed()) {
+    <section class="close-form">
+      <h2>Close till</h2>
+      <p class="hint">
+        System card total so far (from recorded sales): <strong>{{ cardTotalSoFar() | number: '1.2-2' }}</strong>
+        - read the card machine's own settlement batch total off the terminal and enter it below.
+      </p>
+
+      <label>
+        Card machine batch total
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          [ngModel]="cardMachineBatchTotal()"
+          (ngModelChange)="cardMachineBatchTotal.set($event)"
+          name="cardMachineBatchTotal"
+        />
+      </label>
+
+      <label>
+        Difference note (optional)
+        <textarea
+          maxlength="500"
+          [ngModel]="differenceNote()"
+          (ngModelChange)="differenceNote.set($event || null)"
+          name="differenceNote"
+        ></textarea>
+      </label>
+
+      <button type="button" [disabled]="!canClose() || closing()" (click)="close()">
+        {{ closing() ? 'Closing...' : 'Close till' }}
+      </button>
+
+      @if (closeError()) {
+        <p class="error">{{ closeError() }}</p>
+      }
+    </section>
+  } @else {
+    <section
+      class="close-result"
+      [class.over]="closedDifference() > 0"
+      [class.short]="closedDifference() < 0"
+      [class.even]="closedDifference() === 0"
+    >
+      <h2>Till closed</h2>
+      <dl>
+        <dt>System card total</dt>
+        <dd>{{ session.systemCardTotal | number: '1.2-2' }}</dd>
+        <dt>Card machine batch total</dt>
+        <dd>{{ session.cardMachineBatchTotal | number: '1.2-2' }}</dd>
+        <dt>Difference</dt>
+        <dd class="difference">
+          {{ closedDifference() >= 0 ? '+' : '' }}{{ closedDifference() | number: '1.2-2' }}
+          @if (closedDifference() === 0) {
+            <span class="badge even">Balanced</span>
+          } @else if (closedDifference() > 0) {
+            <span class="badge over">Over</span>
+          } @else {
+            <span class="badge short">Short</span>
+          }
+        </dd>
+        @if (session.differenceNote) {
+          <dt>Note</dt>
+          <dd>{{ session.differenceNote }}</dd>
+        }
+      </dl>
+      <p class="hint">Closed {{ session.closedAt | date: 'short' }}</p>
+    </section>
+  }
+  }
+}
