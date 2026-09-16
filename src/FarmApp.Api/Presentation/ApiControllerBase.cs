@@ -66,6 +66,19 @@ public abstract class ApiControllerBase : ControllerBase
             title: "Season estimate not set",
             detail: $"This {entityName} has no cost estimate yet - set ExpectedTotalCost and " +
                      "ExpectedYieldKg on the season before recording a harvest."),
+        ServiceError.AccountingPeriodTillSessionsOpen => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Till sessions still open",
+            detail: "This period cannot be closed while a till session opened within it is still open - " +
+                     "close it first (GET the checklist for exactly which one(s))."),
+        ServiceError.AccountingPeriodAlreadyClosed => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Period already closed",
+            detail: "This accounting period is already closed - it can only be closed once."),
+        ServiceError.AccountingPeriodNotClosed => Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Period not closed",
+            detail: "This accounting period is not closed - there is nothing to reopen."),
         _ => Problem(statusCode: StatusCodes.Status500InternalServerError),
     };
 
@@ -79,6 +92,7 @@ public abstract class ApiControllerBase : ControllerBase
         ServiceError.WithholdingLocked => Problem(statusCode: StatusCodes.Status409Conflict, title: "Withholding period active", detail: detail),
         ServiceError.SeasonAlreadyClosed => Problem(statusCode: StatusCodes.Status409Conflict, title: "Season already closed", detail: detail),
         ServiceError.SeasonEstimateNotSet => Problem(statusCode: StatusCodes.Status409Conflict, title: "Season estimate not set", detail: detail),
+        ServiceError.AccountingPeriodTillSessionsOpen => Problem(statusCode: StatusCodes.Status409Conflict, title: "Till sessions still open", detail: detail),
         _ => ErrorResult(error, entityName),
     };
 }

@@ -30,4 +30,13 @@ public class TillSessionRepository(FarmAppDbContext db) : ITillSessionRepository
 
     public async Task AddAsync(TillSession session, CancellationToken ct)
         => await db.TillSessions.AddAsync(session, ct);
+
+    public Task<List<TillSession>> GetOpenSessionsOpenedInPeriodAsync(int year, int month, CancellationToken ct)
+    {
+        var periodStart = new DateTime(year, month, 1);
+        var periodEnd = periodStart.AddMonths(1);
+        return db.TillSessions.AsNoTracking()
+            .Where(x => x.ClosedAt == null && x.OpenedAt >= periodStart && x.OpenedAt < periodEnd)
+            .ToListAsync(ct);
+    }
 }

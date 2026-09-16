@@ -26,4 +26,13 @@ public class SeasonRepository(FarmAppDbContext db) : ISeasonRepository
 
     public async Task AddAsync(Season season, CancellationToken ct)
         => await db.Seasons.AddAsync(season, ct);
+
+    public Task<List<Season>> GetSeasonsOverlappingPeriodAsync(int year, int month, CancellationToken ct)
+    {
+        var periodStart = new DateTime(year, month, 1);
+        var periodEnd = periodStart.AddMonths(1);
+        return db.Seasons.AsNoTracking()
+            .Where(x => x.StartDate < periodEnd && x.EndDate >= periodStart)
+            .ToListAsync(ct);
+    }
 }

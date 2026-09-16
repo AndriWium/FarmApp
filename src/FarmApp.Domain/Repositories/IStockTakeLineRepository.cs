@@ -15,4 +15,11 @@ public interface IStockTakeLineRepository
         int stockTakeId, Expression<Func<StockTakeLine, TResult>> selector, CancellationToken ct);
 
     Task AddRangeAsync(IEnumerable<StockTakeLine> lines, CancellationToken ct);
+
+    /// <summary>Every StockTakeLine with a non-zero Variance whose StockTake.Date falls in the
+    /// given [year, month] - the month-end close checklist's stock-take-variance item (doc 10 §1
+    /// item 3). "Material" is read simply as "non-zero" here (task brief: there's no "reviewed"/
+    /// "actioned" flag anywhere in this schema to distinguish a variance a human has already
+    /// looked at from one they haven't, so every non-zero variance in the period surfaces).</summary>
+    Task<List<StockTakeVarianceRow>> GetNonZeroVariancesInPeriodAsync(int year, int month, CancellationToken ct);
 }

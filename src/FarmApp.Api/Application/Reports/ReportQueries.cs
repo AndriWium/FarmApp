@@ -374,6 +374,26 @@ public class ReportQueries(IConfiguration configuration, IDebtorsAgingCalculator
 
     private record AccountSaleRow(int CustomerId, string CustomerName, int SaleId, DateTime SaleDate, decimal Amount);
 
+    /// <summary>Every Wastage-type movement whose Date falls in the given [year, month] - the
+    /// month-end close checklist's informational item 5 (doc 10 §1). Reuses
+    /// Reporting.WastageValue (Phase 4b) rather than a new view - same underlying data, just
+    /// period-filtered instead of date-range-filtered.</summary>
+    public async Task<IReadOnlyList<WastageEntryRowDto>> GetWastageInPeriodAsync(int year, int month, CancellationToken ct)
+    {
+        using var db = CreateConnection();
+        var periodStart = new DateTime(year, month, 1);
+        var periodEnd = periodStart.AddMonths(1);
+        var rows = await db.QueryAsync<WastageEntryRowDto>(new CommandDefinition(
+            """
+            SELECT StockMovementId, [Date], ProductId, GradeId, Qty, UnitCost, Value
+            FROM Reporting.WastageValue
+            WHERE [Date] >= @periodStart AND [Date] < @periodEnd
+            ORDER BY [Date];
+            """,
+            new { periodStart, periodEnd }, cancellationToken: ct));
+        return rows.AsList();
+    }
+
     private record HarvestSummaryRow(
         int CropId, DateTime StartDate, int ProductId, string ProductName, int? GradeId, string? GradeName, decimal QtyKg);
 }

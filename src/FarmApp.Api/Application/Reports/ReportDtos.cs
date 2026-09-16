@@ -92,3 +92,10 @@ public record CashFlowDto(
 public record DebtorAgingRowDto(
     int CustomerId, string CustomerName,
     decimal Current, decimal Days30, decimal Days60, decimal Days90Plus, decimal Total);
+
+// ---- Shared with month-end close (doc 10 §1, Phase 4c) ----
+
+/// <summary>One Wastage-type StockMovement, reusing Reporting.WastageValue (Phase 4b) - feeds
+/// both a future wastage/shrinkage report and the month-end close checklist's informational
+/// item 5 (doc 10 §1).</summary>
+public record WastageEntryRowDto(int StockMovementId, DateTime Date, int ProductId, int? GradeId, decimal Qty, decimal UnitCost, decimal Value);

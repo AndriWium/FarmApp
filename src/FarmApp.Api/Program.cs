@@ -1,4 +1,5 @@
 using System.Text;
+using FarmApp.Api.Application.AccountingPeriods;
 using FarmApp.Api.Application.Auth;
 using FarmApp.Api.Application.Blocks;
 using FarmApp.Api.Application.Crops;
@@ -109,6 +110,7 @@ builder.Services.AddScoped<IHarvestLineRepository, HarvestLineRepository>();
 builder.Services.AddScoped<ISeasonCostSummaryRepository, SeasonCostSummaryRepository>();
 builder.Services.AddScoped<IExpenseCategoryRepository, ExpenseCategoryRepository>();
 builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
+builder.Services.AddScoped<IAccountingPeriodRepository, AccountingPeriodRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
 // Domain services — defined in FarmApp.Domain, wired up here per doc 11's dependency-inversion rule.
@@ -148,6 +150,7 @@ builder.Services.AddScoped<IWithholdingLockService, WithholdingLockService>();
 builder.Services.AddScoped<ISeasonCostingService, SeasonCostingService>();
 builder.Services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
+builder.Services.AddScoped<IAccountingPeriodCloseService, AccountingPeriodCloseService>();
 
 // Reports bypass the usual repository/service layering (doc 11) - a plain concrete query class,
 // not an interface+implementation pair, registered directly.
@@ -205,6 +208,7 @@ builder.Services.AddScoped<IValidator<CreateHarvestRequest>, CreateHarvestReques
 builder.Services.AddScoped<IValidator<CreateExpenseCategoryRequest>, CreateExpenseCategoryRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateExpenseCategoryRequest>, UpdateExpenseCategoryRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateExpenseRequest>, CreateExpenseRequestValidator>();
+builder.Services.AddScoped<IValidator<ReopenMonthRequest>, ReopenMonthRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();
 

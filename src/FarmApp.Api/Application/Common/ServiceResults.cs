@@ -53,6 +53,20 @@ public enum ServiceError
     /// clear, actionable rejection rather than silently falling back to some arbitrary number
     /// (see DECISIONS.md).</summary>
     SeasonEstimateNotSet,
+
+    /// <summary>CloseMonthAsync rejected: at least one TillSession opened within the period is
+    /// still open (doc 10 §1's item 1, the checklist's one hard-blocking item, Phase 4c). Detail
+    /// names how many and lets the caller re-check the checklist for exactly which ones.</summary>
+    AccountingPeriodTillSessionsOpen,
+
+    /// <summary>CloseMonthAsync rejected: this [year, month] is already Closed - a month can only
+    /// be closed once (matches SeasonAlreadyClosed's precedent).</summary>
+    AccountingPeriodAlreadyClosed,
+
+    /// <summary>ReopenMonthAsync rejected: this [year, month] has no Closed AccountingPeriod to
+    /// reopen (either it was never closed, or it doesn't exist yet - both read the same way:
+    /// there's nothing to reopen).</summary>
+    AccountingPeriodNotClosed,
 }
 
 /// <summary>A service result carrying either a value (Error == None) or a business error.

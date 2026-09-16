@@ -13,4 +13,12 @@ public interface ISeasonRepository
         Expression<Func<Season, TResult>> selector, int? plantingId, CancellationToken ct);
 
     Task AddAsync(Season season, CancellationToken ct);
+
+    /// <summary>Every Season whose [StartDate, EndDate] window overlaps the given [year, month] -
+    /// the month-end close checklist's season-review item (doc 10 §1 item 4). The checklist
+    /// service itself decides what to flag from the result: an Open season with no
+    /// EstimatedCostPerKg yet ("open seasons reviewed"), or a Closed season whose EndDate actually
+    /// falls in this period with no matching SeasonCostSummary ("closed seasons true-up
+    /// posted").</summary>
+    Task<List<Season>> GetSeasonsOverlappingPeriodAsync(int year, int month, CancellationToken ct);
 }
