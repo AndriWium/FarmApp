@@ -77,6 +77,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'products/:id/recipe',
+        loadComponent: () =>
+          import('./features/products/product-recipe-page/product-recipe-page.component').then(
+            (m) => m.ProductRecipePageComponent,
+          ),
+      },
+      {
         path: 'pack-sizes',
         loadComponent: () =>
           import('./features/pack-sizes/pack-size-page/pack-size-page.component').then(
@@ -103,6 +110,34 @@ export const routes: Routes = [
           import('./features/activity-types/activity-type-page/activity-type-page.component').then(
             (m) => m.ActivityTypePageComponent,
           ),
+      },
+      {
+        path: 'locations',
+        loadComponent: () =>
+          import('./features/locations/location-page/location-page.component').then(
+            (m) => m.LocationPageComponent,
+          ),
+      },
+      {
+        path: 'stock',
+        loadComponent: () =>
+          import('./features/stock-batches/stock-on-hand-page/stock-on-hand-page.component').then(
+            (m) => m.StockOnHandPageComponent,
+          ),
+      },
+      {
+        path: 'stock-movements',
+        loadComponent: () =>
+          import('./features/stock-movements/movement-hub-page/movement-hub-page.component').then(
+            (m) => m.MovementHubPageComponent,
+          ),
+      },
+      {
+        path: 'stock-movements/:kind',
+        loadComponent: () =>
+          import(
+            './features/stock-movements/movement-form-page/movement-form-page.component'
+          ).then((m) => m.MovementFormPageComponent),
       },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
