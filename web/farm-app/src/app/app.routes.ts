@@ -20,8 +20,50 @@ export const routes: Routes = [
             (m) => m.DashboardPageComponent,
           ),
       },
-      // Phase 5b adds: grades, blocks, products, stock, pos, reports (all lazy, all children
-      // of ShellComponent, same pattern as dashboard above).
+      {
+        path: 'grades',
+        loadComponent: () =>
+          import('./features/grades/grade-page/grade-page.component').then(
+            (m) => m.GradePageComponent,
+          ),
+      },
+      {
+        path: 'blocks',
+        loadComponent: () =>
+          import('./features/blocks/block-page/block-page.component').then(
+            (m) => m.BlockPageComponent,
+          ),
+      },
+      {
+        path: 'crops',
+        loadComponent: () =>
+          import('./features/crops/crop-page/crop-page.component').then(
+            (m) => m.CropPageComponent,
+          ),
+      },
+      {
+        path: 'cultivars',
+        loadComponent: () =>
+          import('./features/cultivars/cultivar-page/cultivar-page.component').then(
+            (m) => m.CultivarPageComponent,
+          ),
+      },
+      {
+        path: 'input-items',
+        loadComponent: () =>
+          import('./features/input-items/input-item-page/input-item-page.component').then(
+            (m) => m.InputItemPageComponent,
+          ),
+      },
+      {
+        path: 'suppliers',
+        loadComponent: () =>
+          import('./features/suppliers/supplier-page/supplier-page.component').then(
+            (m) => m.SupplierPageComponent,
+          ),
+      },
+      // Phase 5b-2 adds: price lists, products, pack sizes, customers, expense categories,
+      // activity types (same pattern as above).
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },
