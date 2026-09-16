@@ -51,6 +51,8 @@ public class FarmAppDbContext(DbContextOptions<FarmAppDbContext> options) : DbCo
     public DbSet<Harvest> Harvests => Set<Harvest>();
     public DbSet<HarvestLine> HarvestLines => Set<HarvestLine>();
     public DbSet<SeasonCostSummary> SeasonCostSummaries => Set<SeasonCostSummary>();
+    public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
+    public DbSet<Expense> Expenses => Set<Expense>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {

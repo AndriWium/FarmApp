@@ -5,6 +5,8 @@ using FarmApp.Api.Application.Crops;
 using FarmApp.Api.Application.Cultivars;
 using FarmApp.Api.Application.CustomerPayments;
 using FarmApp.Api.Application.Customers;
+using FarmApp.Api.Application.ExpenseCategories;
+using FarmApp.Api.Application.Expenses;
 using FarmApp.Api.Application.Grades;
 using FarmApp.Api.Application.InputItems;
 using FarmApp.Api.Application.InputPurchases;
@@ -104,6 +106,8 @@ builder.Services.AddScoped<IRainfallLogRepository, RainfallLogRepository>();
 builder.Services.AddScoped<IHarvestRepository, HarvestRepository>();
 builder.Services.AddScoped<IHarvestLineRepository, HarvestLineRepository>();
 builder.Services.AddScoped<ISeasonCostSummaryRepository, SeasonCostSummaryRepository>();
+builder.Services.AddScoped<IExpenseCategoryRepository, ExpenseCategoryRepository>();
+builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<FarmAppDbContext>());
 
 // Domain services — defined in FarmApp.Domain, wired up here per doc 11's dependency-inversion rule.
@@ -140,6 +144,8 @@ builder.Services.AddScoped<IRainfallLogService, RainfallLogService>();
 builder.Services.AddScoped<IHarvestService, HarvestService>();
 builder.Services.AddScoped<IWithholdingLockService, WithholdingLockService>();
 builder.Services.AddScoped<ISeasonCostingService, SeasonCostingService>();
+builder.Services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
+builder.Services.AddScoped<IExpenseService, ExpenseService>();
 
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();
@@ -186,6 +192,9 @@ builder.Services.AddScoped<IValidator<CreateActivityRequest>, CreateActivityRequ
 builder.Services.AddScoped<IValidator<CreateRainfallLogRequest>, CreateRainfallLogRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateRainfallLogRequest>, UpdateRainfallLogRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateHarvestRequest>, CreateHarvestRequestValidator>();
+builder.Services.AddScoped<IValidator<CreateExpenseCategoryRequest>, CreateExpenseCategoryRequestValidator>();
+builder.Services.AddScoped<IValidator<UpdateExpenseCategoryRequest>, UpdateExpenseCategoryRequestValidator>();
+builder.Services.AddScoped<IValidator<CreateExpenseRequest>, CreateExpenseRequestValidator>();
 
 builder.Services.AddScoped<TokenService>();
 
