@@ -292,7 +292,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "FarmApp API"));
 }
 
-app.UseHttpsRedirection();
+// Skipped in Development: the self-signed dev HTTPS cert isn't trusted on a fresh dev
+// machine without an interactive "trust this certificate?" prompt, and a 307 redirect breaks
+// the browser's CORS preflight (OPTIONS) for the Angular dev server on http://localhost:4200 -
+// it can't follow a cross-origin redirect during preflight. Frontend dev config talks to the
+// plain HTTP port (5027) for exactly this reason - see web/farm-app's environment files and
+// DECISIONS.md. Production still enforces HTTPS.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<CorrelationIdMiddleware>();
