@@ -37,7 +37,7 @@ public class PeriodLockInterceptor : SaveChangesInterceptor
         foreach (var (year, month) in yearMonths)
         {
             if (closedPeriods.Any(p => p.Year == year && p.Month == month))
-                throw new InvalidOperationException(
+                throw new PeriodLockedException(year, month,
                     $"Cannot save: {year:D4}-{month:D2} is a closed accounting period.");
         }
 
