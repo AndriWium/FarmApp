@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { extractErrorMessage } from '../../../shared/http-error.util';
 import { CropDto } from '../../crops/crop.model';
@@ -20,7 +21,7 @@ import { ProductsApiService } from '../products-api.service';
 
 @Component({
   selector: 'app-product-page',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './product-page.component.html',
   styleUrl: './product-page.component.scss',
 })

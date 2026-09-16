@@ -1,0 +1,23 @@
+@use '../../../shared/styles/list-page';
+
+h1 {
+  margin-bottom: 0.3rem;
+}
+
+tfoot td {
+  border-top: 2px solid #ccc;
+  border-bottom: none;
+  padding-top: 0.6rem;
+}
+
+.recipe-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.success-text {
+  color: #2f6b3a;
+  font-size: 0.85rem;
+}

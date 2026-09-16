@@ -27,4 +27,11 @@ export class InputItemsApiService {
   deactivate(id: number) {
     return this.http.delete<void>(`${this.url}/${id}`);
   }
+
+  // What ActivityInput.UnitCost snapshots at consumption time (InputItemsController) - shown next
+  // to each recipe line in the product recipe editor so the farmer sees roughly what a batch
+  // costs before committing (Phase 5c-1 task brief, nice-to-have).
+  getWeightedAverageCost(id: number) {
+    return this.http.get<number>(`${this.url}/${id}/weighted-average-cost`);
+  }
 }

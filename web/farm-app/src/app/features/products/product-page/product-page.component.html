@@ -59,6 +59,7 @@
       <th>Make Mode</th>
       <th>Base Unit</th>
       <th>Status</th>
+      <th>Recipe</th>
       @if (canManage()) {
         <th></th>
       }
@@ -112,6 +113,13 @@
           <td>
             <label><input type="checkbox" formControlName="isActive" /> Active</label>
           </td>
+          <td>
+            @if (product.productType === 'Prepared') {
+              <a [routerLink]="['/products', product.productId, 'recipe']">Recipe</a>
+            } @else {
+              <span class="hint">n/a</span>
+            }
+          </td>
           @if (canManage()) {
             <td class="actions">
               <button
@@ -138,6 +146,13 @@
           <td [class]="product.isActive ? 'status-active' : 'status-inactive'">
             {{ product.isActive ? 'Active' : 'Inactive' }}
           </td>
+          <td>
+            @if (product.productType === 'Prepared') {
+              <a [routerLink]="['/products', product.productId, 'recipe']">Recipe</a>
+            } @else {
+              <span class="hint">n/a</span>
+            }
+          </td>
           @if (canManage()) {
             <td class="actions">
               <button type="button" (click)="startEdit(product)">Edit</button>
@@ -150,7 +165,7 @@
       }
     } @empty {
       <tr>
-        <td colspan="7">No products yet.</td>
+        <td colspan="8">No products yet.</td>
       </tr>
     }
   </tbody>

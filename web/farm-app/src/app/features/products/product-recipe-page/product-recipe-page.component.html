@@ -1,0 +1,95 @@
+<p><a routerLink="/products">&larr; Back to products</a></p>
+
+@if (product(); as product) {
+  <h1>{{ product.name }} - Recipe</h1>
+
+  @if (product.productType !== 'Prepared') {
+    <p class="hint">
+      Recipes only apply to Prepared products. "{{ product.name }}" is a {{ product.productType }}
+      product, so it has no recipe to edit.
+    </p>
+  } @else {
+    <p class="hint">
+      One row per ingredient. Saving replaces the whole recipe at once - it's not an incremental
+      edit.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Ingredient</th>
+          <th>Qty</th>
+          <th>Cost (weighted avg)</th>
+          <th>Line cost</th>
+          @if (canManage()) {
+            <th></th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (line of lines.controls; track $index) {
+          <tr [formGroup]="line">
+            <td>
+              @if (canManage()) {
+                <select formControlName="inputItemId">
+                  <option [ngValue]="0">Select an ingredient...</option>
+                  @for (item of inputItems(); track item.inputItemId) {
+                    <option [ngValue]="item.inputItemId">{{ item.name }} ({{ item.unit }})</option>
+                  }
+                </select>
+              } @else {
+                {{ inputItemName(line.getRawValue().inputItemId) }}
+              }
+            </td>
+            <td>
+              @if (canManage()) {
+                <input formControlName="qty" type="number" step="0.001" min="0.001" />
+              } @else {
+                {{ line.getRawValue().qty }}
+              }
+            </td>
+            <td>{{ costFor(line.getRawValue().inputItemId) | number: '1.2-4' }}</td>
+            <td>{{ costFor(line.getRawValue().inputItemId) * line.getRawValue().qty | number: '1.2-4' }}</td>
+            @if (canManage()) {
+              <td class="actions">
+                <button type="button" (click)="removeLine($index)">Remove</button>
+              </td>
+            }
+          </tr>
+        } @empty {
+          <tr>
+            <td [attr.colspan]="canManage() ? 5 : 4">No ingredients yet.</td>
+          </tr>
+        }
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3"><strong>Total cost per unit made</strong></td>
+          <td><strong>{{ totalCost() | number: '1.2-4' }}</strong></td>
+          @if (canManage()) {
+            <td></td>
+          }
+        </tr>
+      </tfoot>
+    </table>
+
+    @if (canManage()) {
+      <div class="recipe-actions">
+        <button type="button" (click)="addLine()">Add ingredient</button>
+        <button type="button" [disabled]="lines.invalid || saving()" (click)="save()">
+          {{ saving() ? 'Saving...' : 'Save recipe' }}
+        </button>
+        @if (saveError()) {
+          <span class="error">{{ saveError() }}</span>
+        }
+        @if (saved()) {
+          <span class="success-text">Recipe saved.</span>
+        }
+      </div>
+    }
+  }
+} @else if (loading()) {
+  <p class="hint">Loading recipe...</p>
+} @else if (notFound()) {
+  <p class="hint">Product not found.</p>
+}

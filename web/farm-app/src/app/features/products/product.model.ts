@@ -41,3 +41,33 @@ export interface UpdateProductRequest {
   baseUnit: ProductBaseUnit;
   isActive: boolean;
 }
+
+// Mirrors FarmApp.Api.Application.Products.RecipeLineDtos. The recipe is a sub-resource of
+// Product - GET/PUT /api/v1/products/{id}/recipe (ProductsController, verified) - read/replaced
+// as one unit, never edited line-by-line (RecipeLineId only appears in the read-back DTO, never
+// sent on a write - SetRecipeRequest's lines are "become this", not per-line edits).
+export interface RecipeLineDto {
+  recipeLineId: number;
+  inputItemId: number;
+  qty: number;
+}
+
+export interface RecipeLineRequest {
+  inputItemId: number;
+  qty: number;
+}
+
+export interface SetRecipeRequest {
+  lines: RecipeLineRequest[];
+}
+
+export interface ProductWithRecipeDto {
+  productId: number;
+  name: string;
+  productType: ProductType;
+  cropId: number | null;
+  makeMode: MakeMode | null;
+  baseUnit: ProductBaseUnit;
+  isActive: boolean;
+  recipeLines: RecipeLineDto[];
+}

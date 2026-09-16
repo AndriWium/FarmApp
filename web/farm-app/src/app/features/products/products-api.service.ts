@@ -1,7 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
-import { CreateProductRequest, ProductDto, UpdateProductRequest } from './product.model';
+import {
+  CreateProductRequest,
+  ProductDto,
+  ProductWithRecipeDto,
+  SetRecipeRequest,
+  UpdateProductRequest,
+} from './product.model';
 
 @Injectable({ providedIn: 'root' })
 export class ProductsApiService {
@@ -26,5 +32,13 @@ export class ProductsApiService {
 
   deactivate(id: number) {
     return this.http.delete<void>(`${this.url}/${id}`);
+  }
+
+  getRecipe(id: number) {
+    return this.http.get<ProductWithRecipeDto>(`${this.url}/${id}/recipe`);
+  }
+
+  setRecipe(id: number, req: SetRecipeRequest) {
+    return this.http.put<ProductWithRecipeDto>(`${this.url}/${id}/recipe`, req);
   }
 }
