@@ -1,0 +1,79 @@
+<h1>Rainfall Log</h1>
+
+<form class="inline-form" [formGroup]="createForm" (ngSubmit)="add()">
+  <label>
+    Date
+    <input formControlName="date" type="date" />
+  </label>
+  <input formControlName="mm" type="number" step="0.1" min="0" placeholder="mm" />
+  <input formControlName="notes" placeholder="Notes (optional)" maxlength="500" />
+  <button type="submit" [disabled]="createForm.invalid">Add reading</button>
+  @if (createForm.controls.date.invalid && createForm.controls.date.touched) {
+    <span class="error">Date is required.</span>
+  }
+  @if (createForm.controls.mm.invalid && createForm.controls.mm.touched) {
+    <span class="error">Mm must be 0 or more.</span>
+  }
+  @if (createError()) {
+    <span class="error">{{ createError() }}</span>
+  }
+</form>
+
+<form class="inline-form" [formGroup]="filterForm" (ngSubmit)="applyFilter()">
+  <label>
+    From
+    <input formControlName="from" type="date" />
+  </label>
+  <label>
+    To
+    <input formControlName="to" type="date" />
+  </label>
+  <button type="submit">Filter</button>
+  <button type="button" (click)="clearFilter()">Clear</button>
+</form>
+
+@if (loading()) {
+  <p class="hint">Loading readings...</p>
+} @else {
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Mm</th>
+        <th>Notes</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (log of logs(); track log.rainfallLogId) {
+        @if (editingId() === log.rainfallLogId) {
+          <tr [formGroup]="editForm">
+            <td>{{ log.date.slice(0, 10) }}</td>
+            <td><input formControlName="mm" type="number" step="0.1" min="0" /></td>
+            <td><input formControlName="notes" maxlength="500" /></td>
+            <td class="actions">
+              <button type="button" [disabled]="editForm.invalid" (click)="saveEdit(log.rainfallLogId)">Save</button>
+              <button type="button" (click)="cancelEdit()">Cancel</button>
+              @if (editError()) {
+                <span class="error">{{ editError() }}</span>
+              }
+            </td>
+          </tr>
+        } @else {
+          <tr>
+            <td>{{ log.date.slice(0, 10) }}</td>
+            <td>{{ log.mm }}</td>
+            <td>{{ log.notes || '-' }}</td>
+            <td class="actions">
+              <button type="button" (click)="startEdit(log)">Edit</button>
+            </td>
+          </tr>
+        }
+      } @empty {
+        <tr>
+          <td colspan="4">No rainfall readings recorded yet.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

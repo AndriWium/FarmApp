@@ -133,6 +133,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'rainfall-logs',
+        loadComponent: () =>
+          import('./features/rainfall-logs/rainfall-log-page/rainfall-log-page.component').then(
+            (m) => m.RainfallLogPageComponent,
+          ),
+      },
+      {
         path: 'stock',
         loadComponent: () =>
           import('./features/stock-batches/stock-on-hand-page/stock-on-hand-page.component').then(
