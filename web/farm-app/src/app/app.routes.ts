@@ -22,6 +22,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'roadmap',
+        loadComponent: () =>
+          import('./features/roadmap/roadmap-page/roadmap-page.component').then(
+            (m) => m.RoadmapPageComponent,
+          ),
+      },
+      {
         path: 'grades',
         loadComponent: () =>
           import('./features/grades/grade-page/grade-page.component').then(

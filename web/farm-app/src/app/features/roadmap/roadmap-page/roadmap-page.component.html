@@ -1,0 +1,108 @@
+<h1>Up &amp; Coming</h1>
+<p class="hint">What's planned and being built next - visible to everyone, maintained by the Owner.</p>
+
+@if (canManage()) {
+  <button type="button" class="toggle-add" (click)="toggleAddForm()">
+    {{ showAddForm() ? 'Cancel' : '+ Add roadmap item' }}
+  </button>
+
+  @if (showAddForm()) {
+    <form class="inline-form" [formGroup]="createForm" (ngSubmit)="add()">
+      <input formControlName="title" placeholder="Title" maxlength="200" />
+      <textarea formControlName="description" placeholder="Description" maxlength="2000"></textarea>
+      <select formControlName="status">
+        @for (s of statuses; track s) {
+          <option [value]="s">{{ statusLabels[s] }}</option>
+        }
+      </select>
+      <input formControlName="targetPhase" placeholder="Target phase (optional)" maxlength="50" />
+      <button type="submit" [disabled]="createForm.invalid">Add</button>
+      @if (createError()) {
+        <span class="error">{{ createError() }}</span>
+      }
+    </form>
+  }
+}
+
+<div class="board">
+  @for (status of statuses; track status) {
+    <section class="column">
+      <h2>{{ statusLabels[status] }} <span class="count">({{ columns()[status].length }})</span></h2>
+
+      @for (item of columns()[status]; track item.roadmapItemId; let i = $index) {
+        @if (editingId() === item.roadmapItemId) {
+          <div class="card editing" [formGroup]="editForm">
+            <input formControlName="title" maxlength="200" />
+            <textarea formControlName="description" maxlength="2000"></textarea>
+            <select formControlName="status">
+              @for (s of statuses; track s) {
+                <option [value]="s">{{ statusLabels[s] }}</option>
+              }
+            </select>
+            <input formControlName="targetPhase" placeholder="Target phase" maxlength="50" />
+            <label class="sort-order-field">
+              Order
+              <input type="number" formControlName="sortOrder" />
+            </label>
+            <div class="actions">
+              <button type="button" [disabled]="editForm.invalid" (click)="saveEdit(item.roadmapItemId)">
+                Save
+              </button>
+              <button type="button" (click)="cancelEdit()">Cancel</button>
+            </div>
+            @if (editError()) {
+              <span class="error">{{ editError() }}</span>
+            }
+          </div>
+        } @else {
+          <div class="card" [class.done]="item.status === 'Done'">
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.description }}</p>
+            @if (item.targetPhase) {
+              <span class="badge">{{ item.targetPhase }}</span>
+            }
+            @if (item.completedOn) {
+              <p class="completed-on">Completed {{ item.completedOn | date: 'yyyy-MM-dd' }}</p>
+            }
+            @if (canManage()) {
+              <div class="actions">
+                <button type="button" (click)="move(item, -1)" [disabled]="i === 0" title="Move up">
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  (click)="move(item, 1)"
+                  [disabled]="i === columns()[status].length - 1"
+                  title="Move down"
+                >
+                  ↓
+                </button>
+                <button type="button" (click)="startEdit(item)">Edit</button>
+                @if (item.status !== 'Done') {
+                  <button type="button" (click)="markDone(item)">Mark done</button>
+                }
+              </div>
+            }
+          </div>
+        }
+      } @empty {
+        <p class="empty">Nothing here.</p>
+      }
+
+      @if (status === 'Done' && columns().olderDone.length > 0) {
+        <details class="older-done">
+          <summary>Earlier ({{ columns().olderDone.length }})</summary>
+          @for (item of columns().olderDone; track item.roadmapItemId) {
+            <div class="card done">
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.description }}</p>
+              @if (item.completedOn) {
+                <p class="completed-on">Completed {{ item.completedOn | date: 'yyyy-MM-dd' }}</p>
+              }
+            </div>
+          }
+        </details>
+      }
+    </section>
+  }
+</div>
