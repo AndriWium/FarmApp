@@ -1,0 +1,110 @@
+<h1>Stock Reports</h1>
+
+<div class="filters">
+  <label>
+    Product
+    <select [ngModel]="productFilter()" (ngModelChange)="productFilter.set($event); load()">
+      <option [ngValue]="0">All products</option>
+      @for (product of products(); track product.productId) {
+        <option [ngValue]="product.productId">
+          {{ product.isActive ? product.name : product.name + ' (inactive)' }}
+        </option>
+      }
+    </select>
+  </label>
+  <label>
+    Grade
+    <select [ngModel]="gradeFilter()" (ngModelChange)="gradeFilter.set($event); load()">
+      <option [ngValue]="0">All grades</option>
+      @for (grade of grades(); track grade.gradeId) {
+        <option [ngValue]="grade.gradeId">{{ grade.isActive ? grade.name : grade.name + ' (inactive)' }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    Movement from
+    <input type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" />
+  </label>
+  <label>
+    to
+    <input type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" />
+  </label>
+  <button type="button" (click)="load()">Refresh</button>
+</div>
+
+@if (loading()) {
+  <p class="hint">Loading stock reports...</p>
+} @else if (error()) {
+  <p class="error">{{ error() }}</p>
+} @else {
+  <h2>On Hand (Valued)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Grade</th>
+        <th>Qty On Hand</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of filteredOnHandRows(); track row.productId + '-' + row.gradeId) {
+        <tr>
+          <td>{{ productName(row.productId) }}</td>
+          <td>{{ row.gradeName ?? '-' }}</td>
+          <td>{{ row.qtyOnHand | number: '1.0-2' }}</td>
+          <td>{{ row.value | number: '1.2-2' }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="4">No stock on hand matches this filter.</td>
+        </tr>
+      }
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3">Total value</td>
+        <td>{{ onHandTotalValue() | number: '1.2-2' }}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <h2>Movement Summary</h2>
+  <p class="hint">Opening + In − Out = Closing, for the date range above.</p>
+  @if (unbalancedMovementRows().length > 0) {
+    <p class="error">
+      {{ unbalancedMovementRows().length }} row(s) do not balance (Opening + In − Out ≠ Closing) - this indicates a
+      data problem and should be investigated before trusting this report.
+    </p>
+  }
+  <table>
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Grade</th>
+        <th>Opening</th>
+        <th>In</th>
+        <th>Out</th>
+        <th>Closing</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of movementRows(); track row.productId + '-' + row.gradeId) {
+        <tr [class.unbalanced]="unbalancedMovementRows().includes(row)">
+          <td>{{ productName(row.productId) }}</td>
+          <td>{{ row.gradeName ?? '-' }}</td>
+          <td>{{ row.openingBalance | number: '1.0-2' }}</td>
+          <td>{{ row.totalIn | number: '1.0-2' }}</td>
+          <td>{{ row.totalOut | number: '1.0-2' }}</td>
+          <td>{{ row.closingBalance | number: '1.0-2' }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="6">No stock movements in this period matching this filter.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <a class="drill" [routerLink]="['/stock']">See individual stock batches &rarr;</a>
+}

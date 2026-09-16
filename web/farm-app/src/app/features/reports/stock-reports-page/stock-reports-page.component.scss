@@ -1,0 +1,55 @@
+@use '../../../shared/styles/list-page';
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+  }
+
+  select,
+  input {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font: inherit;
+  }
+
+  button {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid #2f6b3a;
+    border-radius: 4px;
+    background: #2f6b3a;
+    color: #fff;
+    cursor: pointer;
+  }
+}
+
+h2 {
+  margin-top: 2rem;
+  margin-bottom: 0.6rem;
+  font-size: 1.1rem;
+}
+
+tfoot td {
+  font-weight: 600;
+  border-top: 2px solid #2f6b3a;
+}
+
+tr.unbalanced {
+  background: #fbe9e7;
+}
+
+.drill {
+  display: inline-block;
+  margin-top: 1.2rem;
+  color: #2f6b3a;
+  font-size: 0.9rem;
+}

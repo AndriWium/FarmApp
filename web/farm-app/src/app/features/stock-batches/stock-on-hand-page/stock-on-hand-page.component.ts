@@ -1,6 +1,7 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { forkJoin, map, of, switchMap } from 'rxjs';
 import { GradeDto } from '../../grades/grade.model';
 import { GradesApiService } from '../../grades/grades-api.service';
@@ -23,6 +24,7 @@ export class StockOnHandPageComponent implements OnInit {
   private batchesApi = inject(StockBatchesApiService);
   private productsApi = inject(ProductsApiService);
   private gradesApi = inject(GradesApiService);
+  private route = inject(ActivatedRoute);
 
   loading = signal(true);
   rows = signal<StockBatchRow[]>([]);
@@ -52,6 +54,11 @@ export class StockOnHandPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    // Supports deep-linking from the Stock Reports report page (doc 04's drillability principle) -
+    // a ?productId= query param preselects the same client-side filter the dropdown itself sets.
+    const productIdParam = this.route.snapshot.queryParamMap.get('productId');
+    if (productIdParam) this.productFilter.set(Number(productIdParam));
+
     this.load();
   }
 
