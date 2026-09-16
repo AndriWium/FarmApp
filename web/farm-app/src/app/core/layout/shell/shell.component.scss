@@ -33,6 +33,18 @@
         background: rgba(255, 255, 255, 0.1);
         color: #fff;
       }
+
+      // "Sell" is the screen a cashier actually lives in day to day - marked out from the rest of
+      // the (Owner-facing, admin-shaped) nav list rather than blending in as one more link.
+      &.nav-highlight {
+        font-weight: 700;
+        color: #9fe0ac;
+
+        &.active,
+        &:hover {
+          color: #fff;
+        }
+      }
     }
   }
 }

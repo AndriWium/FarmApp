@@ -168,6 +168,11 @@ export const routes: Routes = [
           ).then((m) => m.StockTakeDetailPageComponent),
       },
       {
+        path: 'pos',
+        loadComponent: () =>
+          import('./features/sales/pos-page/pos-page.component').then((m) => m.PosPageComponent),
+      },
+      {
         path: 'stock-movements',
         loadComponent: () =>
           import('./features/stock-movements/movement-hub-page/movement-hub-page.component').then(

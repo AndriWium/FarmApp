@@ -1,0 +1,55 @@
+<h1>Sell</h1>
+
+@if (!tillSession()) {
+  <div class="gate">
+    @if (gateLoading()) {
+      <p class="hint">Checking for an open till session...</p>
+    } @else {
+      @if (gateError()) {
+        <p class="error">{{ gateError() }}</p>
+      }
+
+      @if (openSessions().length > 0) {
+        <p class="hint">An open till session was found. Continue with one to start selling.</p>
+        <ul class="session-list">
+          @for (session of openSessions(); track session.tillSessionId) {
+            <li>
+              <span>{{ locationName(session.locationId) }}</span>
+              <span class="hint">opened {{ session.openedAt | date: 'short' }}</span>
+              <button type="button" (click)="useSession(session)">Continue selling here</button>
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="open-form">
+        <h2>Open a new till session</h2>
+        <label>
+          Location
+          <select [ngModel]="openLocationId()" (ngModelChange)="openLocationId.set($event)" name="openLocationId">
+            <option [ngValue]="null">Select a location...</option>
+            @for (location of locations(); track location.locationId) {
+              <option [ngValue]="location.locationId">{{ location.name }}</option>
+            }
+          </select>
+        </label>
+        <button type="button" [disabled]="!openLocationId() || opening()" (click)="openSession()">
+          {{ opening() ? 'Opening...' : 'Open till session' }}
+        </button>
+        @if (openError()) {
+          <p class="error">{{ openError() }}</p>
+        }
+      </div>
+    }
+  </div>
+} @else {
+  <div class="session-bar">
+    <span
+      >Selling at <strong>{{ locationName(tillSession()!.locationId) }}</strong> - session opened
+      {{ tillSession()!.openedAt | date: 'short' }}</span
+    >
+    <button type="button" class="link" (click)="changeSession()">Change session</button>
+  </div>
+
+  <p class="hint">Product grid, basket, and checkout land here next.</p>
+}
