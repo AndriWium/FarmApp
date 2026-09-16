@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { BlockDto } from '../../blocks/block.model';
 import { BlocksApiService } from '../../blocks/blocks-api.service';
@@ -26,6 +26,7 @@ export class HarvestListPageComponent implements OnInit {
   private plantingsApi = inject(PlantingsApiService);
   private blocksApi = inject(BlocksApiService);
   private productsApi = inject(ProductsApiService);
+  private route = inject(ActivatedRoute);
 
   loading = signal(true);
   harvests = signal<HarvestDto[]>([]);
@@ -48,6 +49,11 @@ export class HarvestListPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    // Supports deep-linking from the Farming Report page (doc 04's drillability principle) - a
+    // ?seasonId= query param preselects the same client-side filter the dropdown itself sets.
+    const seasonIdParam = this.route.snapshot.queryParamMap.get('seasonId');
+    if (seasonIdParam) this.seasonFilter.set(Number(seasonIdParam));
+
     this.loading.set(true);
     forkJoin({
       harvests: this.api.getAll(),

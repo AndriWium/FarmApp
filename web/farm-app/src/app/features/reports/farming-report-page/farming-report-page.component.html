@@ -1,0 +1,190 @@
+<h1>Farming Report</h1>
+
+<div class="filters">
+  <label>
+    Season
+    <select [ngModel]="selectedSeasonId()" (ngModelChange)="selectSeason($event)">
+      @for (season of seasons(); track season.seasonId) {
+        <option [ngValue]="season.seasonId">{{ seasonLabel(season) }}</option>
+      }
+    </select>
+  </label>
+  <a class="drill" [routerLink]="['/harvests']" [queryParams]="{ seasonId: selectedSeasonId() }"
+    >View harvest entries for this season &rarr;</a
+  >
+</div>
+
+@if (seasons().length === 0) {
+  <p class="hint">No seasons recorded yet.</p>
+} @else if (loadingSeason()) {
+  <p class="hint">Loading season report...</p>
+} @else if (seasonError()) {
+  <p class="error">{{ seasonError() }}</p>
+} @else {
+  @if (farmingReport(); as r) {
+  <section class="should-i-plant">
+    <h2>
+      {{ r.seasonName }}
+      <span class="badge" [class.badge-open]="r.status === 'Open'">{{ r.status }}</span>
+      @if (r.isEstimate) {
+        <span class="badge badge-estimate">Estimate (season still open)</span>
+      }
+    </h2>
+
+    <table class="statement">
+      <tbody>
+        <tr>
+          <td>Input cost</td>
+          <td>{{ r.inputCost | number: '1.2-2' }}</td>
+        </tr>
+        <tr>
+          <td>Labour cost</td>
+          <td>{{ r.labourCost | number: '1.2-2' }}</td>
+        </tr>
+        <tr class="subtotal">
+          <td>Total cost</td>
+          <td>{{ r.totalCost | number: '1.2-2' }}</td>
+        </tr>
+        <tr>
+          <td>Kg harvested</td>
+          <td>{{ r.kgHarvested | number: '1.0-2' }}</td>
+        </tr>
+        <tr>
+          <td>Cost per kg</td>
+          <td>{{ r.costPerKg | number: '1.2-2' }}</td>
+        </tr>
+        <tr>
+          <td>Revenue attributed <span class="hint">(approximation - see below)</span></td>
+          <td>{{ r.revenueAttributed | number: '1.2-2' }}</td>
+        </tr>
+        <tr class="total" [class.negative]="r.margin < 0">
+          <td>Margin</td>
+          <td>{{ r.margin | number: '1.2-2' }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="hint">
+      Revenue attributed is allocated proportionally from period sales by how much of each product's sold quantity
+      came from this season's harvest batches - a reasonable approximation, not an audited figure (no sale line
+      records exactly which batch it depleted).
+    </p>
+  </section>
+
+  <section>
+    <h2>Harvest Summary vs Prior Season</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Grade</th>
+          <th>This Season (kg)</th>
+          <th>Prior Season (kg)</th>
+          <th>Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of harvestSummary(); track row.productId + '-' + row.gradeId) {
+          <tr>
+            <td>{{ row.productName }}</td>
+            <td>{{ row.gradeName ?? '-' }}</td>
+            <td>{{ row.currentSeasonKg | number: '1.0-2' }}</td>
+            <td>{{ row.priorSeasonKg === null ? 'no prior season' : (row.priorSeasonKg | number: '1.0-2') }}</td>
+            <td
+              [class.drift-up]="row.priorSeasonKg !== null && row.currentSeasonKg > row.priorSeasonKg"
+              [class.drift-down]="row.priorSeasonKg !== null && row.currentSeasonKg < row.priorSeasonKg"
+            >
+              {{ row.priorSeasonKg === null ? '-' : (row.currentSeasonKg - row.priorSeasonKg | number: '1.0-2') }}
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5">No harvests recorded for this season.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Input Usage</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Input Item</th>
+          <th>Qty Used</th>
+          <th>Cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of inputUsage(); track row.inputItemId) {
+          <tr>
+            <td>{{ row.inputItemName }}</td>
+            <td>{{ row.qtyUsed | number: '1.0-3' }}</td>
+            <td>{{ row.cost | number: '1.2-2' }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="3">No input usage recorded for this season.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+  }
+}
+
+<section>
+  <h2>Rainfall</h2>
+  <div class="filters">
+    <label>
+      Year
+      <input
+        type="number"
+        [ngModel]="rainfallYear()"
+        (ngModelChange)="rainfallYear.set($event)"
+        min="2000"
+        max="2100"
+      />
+    </label>
+    <label>
+      Month
+      <select [ngModel]="rainfallMonth()" (ngModelChange)="rainfallMonth.set($event)">
+        @for (m of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; track m) {
+          <option [ngValue]="m">{{ m }}</option>
+        }
+      </select>
+    </label>
+    <button type="button" (click)="loadRainfall()">Refresh</button>
+  </div>
+
+  @if (loadingRainfall()) {
+    <p class="hint">Loading rainfall...</p>
+  } @else {
+    @if (rainfall(); as r) {
+      <table class="statement narrow">
+        <tbody>
+          <tr>
+            <td>This period</td>
+            <td>{{ r.thisPeriodMm | number: '1.1-1' }} mm</td>
+          </tr>
+          <tr>
+            <td>Historical average ({{ r.yearsCompared }} other year(s))</td>
+            <td>
+              {{
+                r.historicalAverageMm === null
+                  ? 'no other years recorded'
+                  : (r.historicalAverageMm | number: '1.1-1') + ' mm'
+              }}
+            </td>
+          </tr>
+          @if (rainfallDiff(); as diff) {
+            <tr class="subtotal" [class.drift-up]="diff > 0" [class.drift-down]="diff < 0">
+              <td>Difference</td>
+              <td>{{ diff > 0 ? '+' : '' }}{{ diff | number: '1.1-1' }} mm</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  }
+</section>
