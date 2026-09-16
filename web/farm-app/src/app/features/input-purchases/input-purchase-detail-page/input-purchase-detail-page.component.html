@@ -1,0 +1,54 @@
+<p><a routerLink="/input-purchases">&larr; Back to input purchases</a></p>
+
+@if (purchase(); as purchase) {
+  <h1>Purchase #{{ purchase.inputPurchaseId }}</h1>
+  <p>
+    <strong>Supplier:</strong> {{ supplierName(purchase.supplierId) }}
+    &nbsp;|&nbsp;
+    <strong>Date:</strong> {{ purchase.date | date: 'yyyy-MM-dd' }}
+    &nbsp;|&nbsp;
+    <strong>Invoice Ref:</strong> {{ purchase.invoiceRef || '-' }}
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Input Item</th>
+        <th>Qty</th>
+        <th>Unit Cost</th>
+        <th>Line Total</th>
+        <th>VAT</th>
+        <th>On Hand Now</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (line of purchase.lines; track line.inputPurchaseLineId) {
+        <tr>
+          <td>{{ inputItemName(line.inputItemId) }}</td>
+          <td>{{ line.qty }} {{ inputItemUnit(line.inputItemId) }}</td>
+          <td>{{ line.unitCost | number: '1.2-2' }}</td>
+          <td>{{ line.qty * line.unitCost | number: '1.2-2' }}</td>
+          <td>{{ line.vatAmount !== null ? (line.vatAmount | number: '1.2-2') : '-' }}</td>
+          <td>
+            @if (onHandByItemId().has(line.inputItemId)) {
+              {{ onHandByItemId().get(line.inputItemId) }} {{ inputItemUnit(line.inputItemId) }}
+            } @else {
+              loading...
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3"><strong>Total</strong></td>
+        <td><strong>{{ totalCost() | number: '1.2-2' }}</strong></td>
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+  </table>
+} @else if (loading()) {
+  <p class="hint">Loading purchase...</p>
+} @else if (notFound()) {
+  <p class="hint">Purchase not found.</p>
+}

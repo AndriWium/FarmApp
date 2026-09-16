@@ -1,0 +1,46 @@
+<h1>Input Purchases</h1>
+
+@if (canManage()) {
+  <p><a routerLink="/input-purchases/new">+ New purchase</a></p>
+}
+
+@if (loading()) {
+  <p class="hint">Loading purchases...</p>
+} @else {
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Supplier</th>
+        <th>Invoice Ref</th>
+        <th>Lines</th>
+        <th>Total Cost</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (purchase of sortedPurchases(); track purchase.inputPurchaseId) {
+        <tr>
+          <td>{{ purchase.date | date: 'yyyy-MM-dd' }}</td>
+          <td>{{ supplierName(purchase.supplierId) }}</td>
+          <td>{{ purchase.invoiceRef || '-' }}</td>
+          <td>
+            @for (line of purchase.lines; track line.inputPurchaseLineId; let last = $last) {
+              {{ inputItemName(line.inputItemId) }}@if (!last) {
+                ,
+              }
+            }
+          </td>
+          <td>{{ lineTotal(purchase) | number: '1.2-2' }}</td>
+          <td class="actions">
+            <a [routerLink]="['/input-purchases', purchase.inputPurchaseId]">View</a>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="6">No input purchases recorded yet.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

@@ -34,4 +34,11 @@ export class InputItemsApiService {
   getWeightedAverageCost(id: number) {
     return this.http.get<number>(`${this.url}/${id}/weighted-average-cost`);
   }
+
+  // SUM(Qty) over this item's InputStockMovement ledger (InputItemsController) - used by the
+  // input-purchase screens to show the resulting on-hand right after recording a purchase, since
+  // InputPurchaseLineDto itself carries no batch/on-hand info (Phase 5e-1).
+  getOnHand(id: number) {
+    return this.http.get<number>(`${this.url}/${id}/on-hand`);
+  }
 }

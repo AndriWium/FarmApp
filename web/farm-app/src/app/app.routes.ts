@@ -147,6 +147,27 @@ export const routes: Routes = [
           ).then((m) => m.ProducePurchaseDetailPageComponent),
       },
       {
+        path: 'input-purchases',
+        loadComponent: () =>
+          import(
+            './features/input-purchases/input-purchase-list-page/input-purchase-list-page.component'
+          ).then((m) => m.InputPurchaseListPageComponent),
+      },
+      {
+        path: 'input-purchases/new',
+        loadComponent: () =>
+          import(
+            './features/input-purchases/input-purchase-form-page/input-purchase-form-page.component'
+          ).then((m) => m.InputPurchaseFormPageComponent),
+      },
+      {
+        path: 'input-purchases/:id',
+        loadComponent: () =>
+          import(
+            './features/input-purchases/input-purchase-detail-page/input-purchase-detail-page.component'
+          ).then((m) => m.InputPurchaseDetailPageComponent),
+      },
+      {
         path: 'stock-takes',
         loadComponent: () =>
           import(
