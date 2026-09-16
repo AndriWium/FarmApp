@@ -1,0 +1,64 @@
+@use '../../../shared/styles/list-page';
+
+h1 {
+  margin-bottom: 0.2rem;
+}
+
+.movement-form {
+  align-items: flex-end;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    color: #555;
+  }
+}
+
+// A "not enough stock" 409 is a real, expected user error (trying to deplete more than is on
+// hand) - deliberately calmer than the sharp-red .error class used for validation/other failures,
+// per the task brief's "not a scary failure" instruction.
+.stock-warning {
+  margin-top: 1rem;
+  padding: 0.9rem 1.1rem;
+  background: #fff8ec;
+  border: 1px solid #e8c27a;
+  border-radius: 6px;
+  color: #7a5a10;
+
+  strong {
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+
+  p {
+    margin: 0.2rem 0;
+  }
+}
+
+.success {
+  margin-top: 1rem;
+  padding: 0.9rem 1.1rem;
+  background: #eef6ef;
+  border: 1px solid #bcdac0;
+  border-radius: 6px;
+
+  strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #2f6b3a;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th,
+    td {
+      text-align: left;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.85rem;
+    }
+  }
+}

@@ -1,0 +1,42 @@
+h1 {
+  margin-bottom: 0.3rem;
+}
+
+.hint {
+  color: #777;
+  font-size: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  display: block;
+  padding: 1rem 1.1rem;
+  background: #f7f9f7;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+
+  &:hover {
+    border-color: #2f6b3a;
+    background: #eef4ee;
+  }
+
+  h2 {
+    margin: 0 0 0.4rem;
+    font-size: 1rem;
+    color: #2f6b3a;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #555;
+  }
+}

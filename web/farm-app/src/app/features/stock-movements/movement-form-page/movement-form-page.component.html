@@ -1,0 +1,146 @@
+@if (meta(); as meta) {
+  <p><a routerLink="/stock-movements">&larr; Back to movement types</a></p>
+  <h1>{{ meta.label }}</h1>
+  <p class="hint">{{ meta.description }}</p>
+
+  @if (!canManage()) {
+    <p class="hint">Only an Owner can record stock movements.</p>
+  } @else {
+    <form class="inline-form movement-form" [formGroup]="form" (ngSubmit)="submit()">
+      <label>
+        Product
+        <select formControlName="productId">
+          <option [ngValue]="0">Select a product...</option>
+          @for (product of products(); track product.productId) {
+            <option [ngValue]="product.productId">
+              {{ product.isActive ? product.name : product.name + ' (inactive)' }}
+            </option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Grade (optional)
+        <select formControlName="gradeId">
+          <option [ngValue]="null">No grade</option>
+          @for (grade of grades(); track grade.gradeId) {
+            <option [ngValue]="grade.gradeId">
+              {{ grade.isActive ? grade.name : grade.name + ' (inactive)' }}
+            </option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Qty
+        <input formControlName="qty" type="number" step="0.001" min="0.001" />
+      </label>
+
+      @if (isTransfer()) {
+        <label>
+          From location
+          <select formControlName="fromLocationId">
+            <option [ngValue]="null">Select a location...</option>
+            @for (location of locations(); track location.locationId) {
+              <option [ngValue]="location.locationId">
+                {{ location.isActive ? location.name : location.name + ' (inactive)' }}
+              </option>
+            }
+          </select>
+        </label>
+
+        <label>
+          To location
+          <select formControlName="toLocationId">
+            <option [ngValue]="null">Select a location...</option>
+            @for (location of locations(); track location.locationId) {
+              <option [ngValue]="location.locationId">
+                {{ location.isActive ? location.name : location.name + ' (inactive)' }}
+              </option>
+            }
+          </select>
+        </label>
+
+        <label>
+          Reason (optional)
+          <input formControlName="reason" maxlength="200" placeholder="Reason" />
+        </label>
+      } @else {
+        <label>
+          Location (optional)
+          <select formControlName="locationId">
+            <option [ngValue]="null">No location</option>
+            @for (location of locations(); track location.locationId) {
+              <option [ngValue]="location.locationId">
+                {{ location.isActive ? location.name : location.name + ' (inactive)' }}
+              </option>
+            }
+          </select>
+        </label>
+
+        <label>
+          Reason
+          <input formControlName="reason" maxlength="200" placeholder="Why?" />
+        </label>
+      }
+
+      <button type="submit" [disabled]="form.invalid || submitting()">
+        {{ submitting() ? 'Recording...' : 'Record ' + meta.label }}
+      </button>
+
+      @if (form.controls.productId.invalid && form.controls.productId.touched) {
+        <span class="error">Select a product.</span>
+      }
+      @if (form.controls.qty.invalid && form.controls.qty.touched) {
+        <span class="error">Quantity must be greater than 0.</span>
+      }
+      @if (isTransfer() && form.controls.fromLocationId.invalid && form.controls.fromLocationId.touched) {
+        <span class="error">Select a from-location.</span>
+      }
+      @if (isTransfer() && form.controls.toLocationId.invalid && form.controls.toLocationId.touched) {
+        <span class="error">Select a to-location (different from the from-location).</span>
+      }
+      @if (!isTransfer() && form.controls.reason.invalid && form.controls.reason.touched) {
+        <span class="error">A reason is required (max 200 characters).</span>
+      }
+    </form>
+
+    @if (insufficientStock()) {
+      <div class="stock-warning">
+        <strong>Not enough stock on hand.</strong>
+        <p>{{ submitError() }}</p>
+        <p class="hint">Check the Stock on Hand screen for what's actually available, then try a smaller quantity.</p>
+      </div>
+    } @else if (submitError()) {
+      <p class="error">{{ submitError() }}</p>
+    }
+
+    @if (lastResult(); as result) {
+      <div class="success">
+        <strong>Recorded.</strong>
+        <table>
+          <thead>
+            <tr>
+              <th>Batch</th>
+              <th>Type</th>
+              <th>Qty</th>
+              <th>Location</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (movement of result; track movement.stockMovementId) {
+              <tr>
+                <td>#{{ movement.stockBatchId }}</td>
+                <td>{{ movement.type }}</td>
+                <td>{{ movement.qty }}</td>
+                <td>{{ locationName(movement.locationId) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+} @else {
+  <p class="hint">Unknown movement type.</p>
+}

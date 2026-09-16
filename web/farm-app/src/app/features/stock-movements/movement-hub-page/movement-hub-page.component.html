@@ -1,0 +1,11 @@
+<h1>Record a Stock Movement</h1>
+<p class="hint">Pick the kind of movement to record. Each depletes stock FIFO (oldest batch first).</p>
+
+<div class="cards">
+  @for (kind of kinds; track kind.kind) {
+    <a class="card" [routerLink]="['/stock-movements', kind.kind]">
+      <h2>{{ kind.label }}</h2>
+      <p>{{ kind.description }}</p>
+    </a>
+  }
+</div>
