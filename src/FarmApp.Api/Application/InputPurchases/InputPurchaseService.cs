@@ -42,45 +42,63 @@ public class InputPurchaseService(
                 return ServiceResult<InputPurchaseDto>.Fail(ServiceError.NotFound);
         }
 
-        var purchase = new InputPurchase
+        // Everything above is deterministic from the request alone; nothing past this point should
+        // legitimately fail (every InputItemId was already validated) - so the real transaction
+        // starts now. Same genuine-EF-Core-transaction pattern as HarvestService/ProducePurchase-
+        // Service/ActivityService/SaleService, replacing this method's older two-phase-save stopgap
+        // (see DECISIONS.md / IUnitOfWork's own doc comment): a mid-operation failure - including
+        // from InputPurchase/InputPurchaseLine now also being IPeriodLocked, which can only ever
+        // fail on the very first SaveChangesAsync below - now rolls back everything, including the
+        // header and line inserts, not just whatever movement rows were still unflushed.
+        await uow.BeginTransactionAsync(ct);
+        try
         {
-            SupplierId = request.SupplierId,
-            Date = request.Date,
-            InvoiceRef = request.InvoiceRef,
-        };
-        await repo.AddAsync(purchase, ct);
-        // Materialize InputPurchaseId before the lines below can reference it - same two-phase-
-        // save stopgap ProducePurchaseService already established (see DECISIONS.md).
-        await uow.SaveChangesAsync(ct);
+            var purchase = new InputPurchase
+            {
+                SupplierId = request.SupplierId,
+                Date = request.Date,
+                InvoiceRef = request.InvoiceRef,
+            };
+            await repo.AddAsync(purchase, ct);
+            // Materialize InputPurchaseId before the lines below can reference it.
+            await uow.SaveChangesAsync(ct);
 
-        var lines = request.Lines.Select(l => new InputPurchaseLine
+            var lines = request.Lines.Select(l => new InputPurchaseLine
+            {
+                InputPurchaseId = purchase.InputPurchaseId,
+                InputItemId = l.InputItemId,
+                Qty = l.Qty,
+                UnitCost = l.UnitCost,
+                VatAmount = l.VatAmount,
+            }).ToList();
+            await lineRepo.AddRangeAsync(lines, ct);
+            // Materialize each InputPurchaseLineId before it's used below as the seeding movement's RefId.
+            await uow.SaveChangesAsync(ct);
+
+            var movements = lines.Select(l => new InputStockMovement
+            {
+                InputItemId = l.InputItemId,
+                Date = purchase.Date,
+                Type = InputStockMovementType.PurchaseIn,
+                Qty = l.Qty, // positive - stock coming in
+                UnitCost = l.UnitCost,
+                RefTable = "InputPurchaseLine",
+                RefId = l.InputPurchaseLineId,
+            }).ToList();
+            await movementRepo.AddRangeAsync(movements, ct);
+            await uow.SaveChangesAsync(ct);
+
+            await uow.CommitTransactionAsync(ct);
+
+            return ServiceResult<InputPurchaseDto>.Ok(new InputPurchaseDto(
+                purchase.InputPurchaseId, purchase.SupplierId, purchase.Date, purchase.InvoiceRef,
+                lines.Select(l => new InputPurchaseLineDto(l.InputPurchaseLineId, l.InputItemId, l.Qty, l.UnitCost, l.VatAmount)).ToList()));
+        }
+        catch
         {
-            InputPurchaseId = purchase.InputPurchaseId,
-            InputItemId = l.InputItemId,
-            Qty = l.Qty,
-            UnitCost = l.UnitCost,
-            VatAmount = l.VatAmount,
-        }).ToList();
-        await lineRepo.AddRangeAsync(lines, ct);
-        // Materialize each InputPurchaseLineId before it's used below as the seeding movement's RefId.
-        await uow.SaveChangesAsync(ct);
-
-        var movements = lines.Select(l => new InputStockMovement
-        {
-            InputItemId = l.InputItemId,
-            Date = purchase.Date,
-            Type = InputStockMovementType.PurchaseIn,
-            Qty = l.Qty, // positive - stock coming in
-            UnitCost = l.UnitCost,
-            RefTable = "InputPurchaseLine",
-            RefId = l.InputPurchaseLineId,
-        }).ToList();
-        await movementRepo.AddRangeAsync(movements, ct);
-        await uow.SaveChangesAsync(ct);
-
-        return ServiceResult<InputPurchaseDto>.Ok(new InputPurchaseDto(
-            purchase.InputPurchaseId, purchase.SupplierId, purchase.Date, purchase.InvoiceRef,
-            lines.Select(l => new InputPurchaseLineDto(l.InputPurchaseLineId, l.InputItemId, l.Qty, l.UnitCost, l.VatAmount)).ToList()));
+            await uow.RollbackTransactionAsync(ct);
+            throw;
+        }
     }
 
     private async Task<InputPurchaseDto> ToDtoAsync(InputPurchase purchase, CancellationToken ct)

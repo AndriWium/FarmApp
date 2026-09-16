@@ -48,53 +48,78 @@ public class ProducePurchaseService(
                 return ServiceResult<ProducePurchaseDto>.Fail(ServiceError.NotFound);
         }
 
-        var purchase = new ProducePurchase
+        // Everything above is deterministic from the request alone; only the per-line StockBatch
+        // creation can still legitimately fail from here (defensively - every product/grade was
+        // already validated) - so the real transaction starts now. Same genuine-EF-Core-transaction
+        // pattern as HarvestService/ActivityService/SaleService, replacing this method's older
+        // two-phase-save stopgap (see DECISIONS.md / IUnitOfWork's own doc comment): a mid-operation
+        // failure - including from ProducePurchase/ProducePurchaseLine now also being IPeriodLocked,
+        // which can only ever fail on the very first SaveChangesAsync below - now rolls back
+        // everything, including the header and line inserts, not just what StockBatchService itself
+        // adds. StockBatchService.CreateAsync opens no transaction of its own, so it safely
+        // participates in this ambient one.
+        await uow.BeginTransactionAsync(ct);
+        try
         {
-            SupplierId = request.SupplierId,
-            Date = request.Date,
-            InvoiceRef = request.InvoiceRef,
-        };
-        await repo.AddAsync(purchase, ct);
-        // Materialize ProducePurchaseId before the lines below can reference it - same loose-FK
-        // two-phase-save stopgap StockBatchService already established (see DECISIONS.md).
-        await uow.SaveChangesAsync(ct);
+            var purchase = new ProducePurchase
+            {
+                SupplierId = request.SupplierId,
+                Date = request.Date,
+                InvoiceRef = request.InvoiceRef,
+            };
+            await repo.AddAsync(purchase, ct);
+            // Materialize ProducePurchaseId before the lines below can reference it - same loose-FK
+            // two-phase-save shape StockBatchService itself still uses internally (see DECISIONS.md),
+            // now inside one transaction rather than as this method's own outer atomicity boundary.
+            await uow.SaveChangesAsync(ct);
 
-        var lines = request.Lines.Select(l => new ProducePurchaseLine
-        {
-            ProducePurchaseId = purchase.ProducePurchaseId,
-            ProductId = l.ProductId,
-            GradeId = l.GradeId,
-            Qty = l.Qty,
-            UnitCost = l.UnitCost,
-            VatAmount = l.VatAmount,
-        }).ToList();
-        await lineRepo.AddRangeAsync(lines, ct);
-        // Materialize each ProducePurchaseLineId before it's used below as StockBatch.PurchaseLineId.
-        await uow.SaveChangesAsync(ct);
+            var lines = request.Lines.Select(l => new ProducePurchaseLine
+            {
+                ProducePurchaseId = purchase.ProducePurchaseId,
+                ProductId = l.ProductId,
+                GradeId = l.GradeId,
+                Qty = l.Qty,
+                UnitCost = l.UnitCost,
+                VatAmount = l.VatAmount,
+            }).ToList();
+            await lineRepo.AddRangeAsync(lines, ct);
+            // Materialize each ProducePurchaseLineId before it's used below as StockBatch.PurchaseLineId.
+            await uow.SaveChangesAsync(ct);
 
-        // One StockBatch (+ seeding PurchaseIn movement) per line, reusing StockBatchService
-        // rather than duplicating its batch+movement creation logic (task brief). Every
-        // product/grade reference was already validated above, so this is expected to always
-        // succeed - defensively fail the whole call if it somehow doesn't rather than return a
-        // partially-built purchase.
-        var lineDtos = new List<ProducePurchaseLineDto>();
-        foreach (var (line, lineRequest) in lines.Zip(request.Lines))
-        {
-            var batchResult = await stockBatchService.CreateAsync(new CreateStockBatchRequest(
-                line.ProductId, line.GradeId, StockSource.Purchase,
-                HarvestId: null, PurchaseLineId: line.ProducePurchaseLineId,
-                purchase.Date, line.Qty, line.UnitCost, lineRequest.ShelfLifeDays), ct);
+            // One StockBatch (+ seeding PurchaseIn movement) per line, reusing StockBatchService
+            // rather than duplicating its batch+movement creation logic (task brief). Every
+            // product/grade reference was already validated above, so this is expected to always
+            // succeed - defensively roll back the whole purchase if it somehow doesn't, rather than
+            // leave a partially-built purchase behind.
+            var lineDtos = new List<ProducePurchaseLineDto>();
+            foreach (var (line, lineRequest) in lines.Zip(request.Lines))
+            {
+                var batchResult = await stockBatchService.CreateAsync(new CreateStockBatchRequest(
+                    line.ProductId, line.GradeId, StockSource.Purchase,
+                    HarvestId: null, PurchaseLineId: line.ProducePurchaseLineId,
+                    purchase.Date, line.Qty, line.UnitCost, lineRequest.ShelfLifeDays), ct);
 
-            if (batchResult.Error != ServiceError.None)
-                return ServiceResult<ProducePurchaseDto>.Fail(batchResult.Error, batchResult.Detail ?? "Failed to create stock batch for purchase line.");
+                if (batchResult.Error != ServiceError.None)
+                {
+                    await uow.RollbackTransactionAsync(ct);
+                    return ServiceResult<ProducePurchaseDto>.Fail(batchResult.Error, batchResult.Detail ?? "Failed to create stock batch for purchase line.");
+                }
 
-            lineDtos.Add(new ProducePurchaseLineDto(
-                line.ProducePurchaseLineId, line.ProductId, line.GradeId, line.Qty, line.UnitCost, line.VatAmount,
-                batchResult.Value!.StockBatchId));
+                lineDtos.Add(new ProducePurchaseLineDto(
+                    line.ProducePurchaseLineId, line.ProductId, line.GradeId, line.Qty, line.UnitCost, line.VatAmount,
+                    batchResult.Value!.StockBatchId));
+            }
+
+            await uow.CommitTransactionAsync(ct);
+
+            return ServiceResult<ProducePurchaseDto>.Ok(
+                new ProducePurchaseDto(purchase.ProducePurchaseId, purchase.SupplierId, purchase.Date, purchase.InvoiceRef, lineDtos));
         }
-
-        return ServiceResult<ProducePurchaseDto>.Ok(
-            new ProducePurchaseDto(purchase.ProducePurchaseId, purchase.SupplierId, purchase.Date, purchase.InvoiceRef, lineDtos));
+        catch
+        {
+            await uow.RollbackTransactionAsync(ct);
+            throw;
+        }
     }
 
     private async Task<ProducePurchaseDto> ToDtoAsync(ProducePurchase purchase, CancellationToken ct)
