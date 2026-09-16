@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
+import { ownerGuard } from './core/auth/owner.guard';
 import { ShellComponent } from './core/layout/shell/shell.component';
 
 export const routes: Routes = [
@@ -290,6 +291,54 @@ export const routes: Routes = [
           import(
             './features/stock-movements/movement-form-page/movement-form-page.component'
           ).then((m) => m.MovementFormPageComponent),
+      },
+      {
+        path: 'reports',
+        canActivate: [ownerGuard],
+        loadComponent: () =>
+          import('./features/reports/reports-landing-page/reports-landing-page.component').then(
+            (m) => m.ReportsLandingPageComponent,
+          ),
+      },
+      {
+        path: 'reports/income-statement',
+        canActivate: [ownerGuard],
+        loadComponent: () =>
+          import('./features/reports/income-statement-page/income-statement-page.component').then(
+            (m) => m.IncomeStatementPageComponent,
+          ),
+      },
+      {
+        path: 'reports/sales-analysis',
+        canActivate: [ownerGuard],
+        loadComponent: () =>
+          import('./features/reports/sales-analysis-page/sales-analysis-page.component').then(
+            (m) => m.SalesAnalysisPageComponent,
+          ),
+      },
+      {
+        path: 'reports/stock',
+        canActivate: [ownerGuard],
+        loadComponent: () =>
+          import('./features/reports/stock-reports-page/stock-reports-page.component').then(
+            (m) => m.StockReportsPageComponent,
+          ),
+      },
+      {
+        path: 'reports/farming',
+        canActivate: [ownerGuard],
+        loadComponent: () =>
+          import('./features/reports/farming-report-page/farming-report-page.component').then(
+            (m) => m.FarmingReportPageComponent,
+          ),
+      },
+      {
+        path: 'reports/cash-debtors',
+        canActivate: [ownerGuard],
+        loadComponent: () =>
+          import('./features/reports/cash-debtors-page/cash-debtors-page.component').then(
+            (m) => m.CashDebtorsPageComponent,
+          ),
       },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
