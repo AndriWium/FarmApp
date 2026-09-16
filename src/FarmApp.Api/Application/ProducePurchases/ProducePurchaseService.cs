@@ -66,6 +66,7 @@ public class ProducePurchaseService(
             GradeId = l.GradeId,
             Qty = l.Qty,
             UnitCost = l.UnitCost,
+            VatAmount = l.VatAmount,
         }).ToList();
         await lineRepo.AddRangeAsync(lines, ct);
         // Materialize each ProducePurchaseLineId before it's used below as StockBatch.PurchaseLineId.
@@ -88,7 +89,7 @@ public class ProducePurchaseService(
                 return ServiceResult<ProducePurchaseDto>.Fail(batchResult.Error, batchResult.Detail ?? "Failed to create stock batch for purchase line.");
 
             lineDtos.Add(new ProducePurchaseLineDto(
-                line.ProducePurchaseLineId, line.ProductId, line.GradeId, line.Qty, line.UnitCost,
+                line.ProducePurchaseLineId, line.ProductId, line.GradeId, line.Qty, line.UnitCost, line.VatAmount,
                 batchResult.Value!.StockBatchId));
         }
 
@@ -99,7 +100,7 @@ public class ProducePurchaseService(
     private async Task<ProducePurchaseDto> ToDtoAsync(ProducePurchase purchase, CancellationToken ct)
     {
         var lines = await lineRepo.GetByPurchaseIdAsync(purchase.ProducePurchaseId,
-            l => new { l.ProducePurchaseLineId, l.ProductId, l.GradeId, l.Qty, l.UnitCost }, ct);
+            l => new { l.ProducePurchaseLineId, l.ProductId, l.GradeId, l.Qty, l.UnitCost, l.VatAmount }, ct);
 
         var lineIds = lines.Select(l => l.ProducePurchaseLineId).ToList();
         var batches = await stockBatchRepo.GetByPurchaseLineIdsAsync(
@@ -108,7 +109,7 @@ public class ProducePurchaseService(
 
         var lineDtos = lines
             .Select(l => new ProducePurchaseLineDto(
-                l.ProducePurchaseLineId, l.ProductId, l.GradeId, l.Qty, l.UnitCost,
+                l.ProducePurchaseLineId, l.ProductId, l.GradeId, l.Qty, l.UnitCost, l.VatAmount,
                 batchIdByLine.GetValueOrDefault(l.ProducePurchaseLineId)))
             .ToList();
 

@@ -59,6 +59,7 @@ public class InputPurchaseService(
             InputItemId = l.InputItemId,
             Qty = l.Qty,
             UnitCost = l.UnitCost,
+            VatAmount = l.VatAmount,
         }).ToList();
         await lineRepo.AddRangeAsync(lines, ct);
         // Materialize each InputPurchaseLineId before it's used below as the seeding movement's RefId.
@@ -79,13 +80,13 @@ public class InputPurchaseService(
 
         return ServiceResult<InputPurchaseDto>.Ok(new InputPurchaseDto(
             purchase.InputPurchaseId, purchase.SupplierId, purchase.Date, purchase.InvoiceRef,
-            lines.Select(l => new InputPurchaseLineDto(l.InputPurchaseLineId, l.InputItemId, l.Qty, l.UnitCost)).ToList()));
+            lines.Select(l => new InputPurchaseLineDto(l.InputPurchaseLineId, l.InputItemId, l.Qty, l.UnitCost, l.VatAmount)).ToList()));
     }
 
     private async Task<InputPurchaseDto> ToDtoAsync(InputPurchase purchase, CancellationToken ct)
     {
         var lines = await lineRepo.GetByPurchaseIdAsync(purchase.InputPurchaseId,
-            l => new InputPurchaseLineDto(l.InputPurchaseLineId, l.InputItemId, l.Qty, l.UnitCost), ct);
+            l => new InputPurchaseLineDto(l.InputPurchaseLineId, l.InputItemId, l.Qty, l.UnitCost, l.VatAmount), ct);
 
         return new InputPurchaseDto(purchase.InputPurchaseId, purchase.SupplierId, purchase.Date, purchase.InvoiceRef, lines);
     }

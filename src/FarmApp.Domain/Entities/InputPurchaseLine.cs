@@ -12,4 +12,10 @@ public class InputPurchaseLine
 
     public decimal Qty { get; set; } // decimal(18,3)
     public decimal UnitCost { get; set; } // decimal(18,2)
+
+    /// <summary>VAT shown on the supplier's slip for this line, nullable - doc 10 §2's VAT-
+    /// readiness gap (should have shipped in Phase 0, closed in Phase 4b). Captured now so
+    /// history is reclaimable/reportable if VAT registration comes later; not used by any
+    /// calculation yet (the business isn't VAT-registered).</summary>
+    public decimal? VatAmount { get; set; } // decimal(18,2)
 }

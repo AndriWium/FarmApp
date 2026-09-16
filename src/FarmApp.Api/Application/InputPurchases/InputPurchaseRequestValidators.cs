@@ -9,6 +9,7 @@ public class CreateInputPurchaseLineRequestValidator : AbstractValidator<CreateI
         RuleFor(x => x.InputItemId).GreaterThan(0);
         RuleFor(x => x.Qty).GreaterThan(0);
         RuleFor(x => x.UnitCost).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.VatAmount).GreaterThanOrEqualTo(0).When(x => x.VatAmount.HasValue);
     }
 }
 

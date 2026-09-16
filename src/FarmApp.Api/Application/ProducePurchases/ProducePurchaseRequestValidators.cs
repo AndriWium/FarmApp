@@ -10,6 +10,7 @@ public class CreatePurchaseLineRequestValidator : AbstractValidator<CreatePurcha
         RuleFor(x => x.Qty).GreaterThan(0);
         RuleFor(x => x.UnitCost).GreaterThanOrEqualTo(0);
         RuleFor(x => x.ShelfLifeDays).GreaterThan(0);
+        RuleFor(x => x.VatAmount).GreaterThanOrEqualTo(0).When(x => x.VatAmount.HasValue);
     }
 }
 

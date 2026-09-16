@@ -11,6 +11,7 @@ public class InputPurchaseLineConfiguration : IEntityTypeConfiguration<InputPurc
         b.HasKey(x => x.InputPurchaseLineId);
         b.Property(x => x.Qty).HasPrecision(18, 3);
         b.Property(x => x.UnitCost).HasPrecision(18, 2);
+        b.Property(x => x.VatAmount).HasPrecision(18, 2);
 
         // Supports GetByPurchaseIdAsync's "all lines for this purchase" query.
         b.HasIndex(x => x.InputPurchaseId);

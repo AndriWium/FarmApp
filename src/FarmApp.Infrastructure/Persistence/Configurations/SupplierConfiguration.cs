@@ -15,5 +15,6 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
         b.Property(x => x.Phone).HasMaxLength(50);
         b.Property(x => x.Notes).HasMaxLength(1000);
         b.Property(x => x.IsActive).HasDefaultValue(true);
+        b.Property(x => x.VatNumber).HasMaxLength(20);
     }
 }

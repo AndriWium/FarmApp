@@ -10,6 +10,7 @@ public class CreateSupplierRequestValidator : AbstractValidator<CreateSupplierRe
         RuleFor(x => x.Name).RequiredName();
         RuleFor(x => x.Phone).MaximumLength(50);
         RuleFor(x => x.Notes).MaximumLength(1000);
+        RuleFor(x => x.VatNumber).MaximumLength(20);
     }
 }
 
@@ -20,5 +21,6 @@ public class UpdateSupplierRequestValidator : AbstractValidator<UpdateSupplierRe
         RuleFor(x => x.Name).RequiredName();
         RuleFor(x => x.Phone).MaximumLength(50);
         RuleFor(x => x.Notes).MaximumLength(1000);
+        RuleFor(x => x.VatNumber).MaximumLength(20);
     }
 }
