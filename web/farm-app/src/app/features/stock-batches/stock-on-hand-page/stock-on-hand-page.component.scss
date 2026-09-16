@@ -1,0 +1,20 @@
+@use '../../../shared/styles/list-page';
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  select {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font: inherit;
+  }
+}
+
+tr.depleted {
+  color: #999;
+}
