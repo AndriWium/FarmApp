@@ -189,6 +189,48 @@ export const routes: Routes = [
           ).then((m) => m.InputPurchaseDetailPageComponent),
       },
       {
+        path: 'activities',
+        loadComponent: () =>
+          import('./features/activities/activity-list-page/activity-list-page.component').then(
+            (m) => m.ActivityListPageComponent,
+          ),
+      },
+      {
+        path: 'activities/new',
+        loadComponent: () =>
+          import('./features/activities/activity-form-page/activity-form-page.component').then(
+            (m) => m.ActivityFormPageComponent,
+          ),
+      },
+      {
+        path: 'activities/:id',
+        loadComponent: () =>
+          import('./features/activities/activity-detail-page/activity-detail-page.component').then(
+            (m) => m.ActivityDetailPageComponent,
+          ),
+      },
+      {
+        path: 'harvests',
+        loadComponent: () =>
+          import('./features/harvests/harvest-list-page/harvest-list-page.component').then(
+            (m) => m.HarvestListPageComponent,
+          ),
+      },
+      {
+        path: 'harvests/new',
+        loadComponent: () =>
+          import('./features/harvests/harvest-form-page/harvest-form-page.component').then(
+            (m) => m.HarvestFormPageComponent,
+          ),
+      },
+      {
+        path: 'harvests/:id',
+        loadComponent: () =>
+          import('./features/harvests/harvest-detail-page/harvest-detail-page.component').then(
+            (m) => m.HarvestDetailPageComponent,
+          ),
+      },
+      {
         path: 'stock-takes',
         loadComponent: () =>
           import(
