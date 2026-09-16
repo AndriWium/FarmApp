@@ -6,8 +6,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FarmApp.Api.Presentation.Controllers;
 
+// Explicit kebab-case route, matching the fix already applied to ExpenseCategoriesController/
+// ActivityTypesController (Phase 5b-1/5b-2): the [controller] token substitutes the PascalCase
+// class-name prefix ("PriceLists") verbatim, which never matches a kebab-case request path
+// ("price-lists") no matter how case-insensitive ASP.NET Core's routing is - the mismatch is the
+// literal hyphen, not casing. Found live while wiring up this entity's Angular screen (every GET
+// and POST 404'd until this was added); fixed minimally here rather than worked around client-side.
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/price-lists")]
 public class PriceListsController(IPriceListService service) : ApiControllerBase
 {
     [HttpGet]

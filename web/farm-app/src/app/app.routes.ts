@@ -62,8 +62,28 @@ export const routes: Routes = [
             (m) => m.SupplierPageComponent,
           ),
       },
-      // Phase 5b-2 adds: price lists, products, pack sizes, customers, expense categories,
-      // activity types (same pattern as above).
+      {
+        path: 'price-lists',
+        loadComponent: () =>
+          import('./features/price-lists/price-list-page/price-list-page.component').then(
+            (m) => m.PriceListPageComponent,
+          ),
+      },
+      {
+        path: 'expense-categories',
+        loadComponent: () =>
+          import(
+            './features/expense-categories/expense-category-page/expense-category-page.component'
+          ).then((m) => m.ExpenseCategoryPageComponent),
+      },
+      {
+        path: 'activity-types',
+        loadComponent: () =>
+          import('./features/activity-types/activity-type-page/activity-type-page.component').then(
+            (m) => m.ActivityTypePageComponent,
+          ),
+      },
+      // Phase 5b-2 (rest) adds: products, pack sizes, customers (same pattern as above).
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },
