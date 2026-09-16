@@ -11,6 +11,7 @@ using FarmApp.Api.Application.Grades;
 using FarmApp.Api.Application.InputItems;
 using FarmApp.Api.Application.InputPurchases;
 using FarmApp.Api.Application.Plantings;
+using FarmApp.Api.Application.Reports;
 using FarmApp.Api.Application.SeasonCosting;
 using FarmApp.Api.Application.Seasons;
 using FarmApp.Api.Application.ActivityTypes;
@@ -147,6 +148,10 @@ builder.Services.AddScoped<ISeasonCostingService, SeasonCostingService>();
 builder.Services.AddScoped<IExpenseCategoryService, ExpenseCategoryService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 
+// Reports bypass the usual repository/service layering (doc 11) - a plain concrete query class,
+// not an interface+implementation pair, registered directly.
+builder.Services.AddScoped<ReportQueries>();
+
 builder.Services.AddScoped<IValidator<CreateGradeRequest>, CreateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<UpdateGradeRequest>, UpdateGradeRequestValidator>();
 builder.Services.AddScoped<IValidator<CreateBlockRequest>, CreateBlockRequestValidator>();
@@ -218,7 +223,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorizationBuilder()
     .SetFallbackPolicy(new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser().Build())
-    .AddPolicy("CanManageMasterData", p => p.RequireRole("Owner"));
+    .AddPolicy("CanManageMasterData", p => p.RequireRole("Owner"))
+    // doc 13's policy table names this one but nothing had created it yet - wired now for the
+    // reports this phase adds (income statement/sales analysis surface margins and COGS, which
+    // read as owner-level financial detail, not something a Cashier/Worker needs day-to-day -
+    // matches doc 13's table, which maps CanViewReports to Owner only).
+    .AddPolicy("CanViewReports", p => p.RequireRole("Owner"));
 
 builder.Services.AddControllers()
     // InputItem.Category is the first enum exposed through the API; serialize enums as
